@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -810,18 +811,19 @@ function GenerateTab(){
     const depthInstr=depth==="concise"?"Be concise — key decisions only, no padding.":depth==="comprehensive"?"Be comprehensive — cover every edge case, state, and decision.":"Be detailed but efficient — full spec without unnecessary repetition.";
     const sys=buildSystemPrompt(intent,tool,input,activeResources,mode,creativity)+" "+depthInstr;
     try{
-      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      const apiKey=localStorage.getItem("kp_api_key")||"";
+      if(!apiKey){setOutput("No API key found. Click \"⚠ Set API Key\" in the header and paste your Gemini API key.");setRunning(false);return;}
+      const geminiUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const resp=await fetch(geminiUrl,{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:1000,
-          system:sys,
-          messages:[{role:"user",content:`Generate the ${mode==="content"?"complete artefact":"governed prompt"} for: "${input}"`}]
+          contents:[{parts:[{text:sys+"\n\nGenerate the "+(mode==="content"?"complete artefact":"governed prompt")+" for: \""+input+"\""}]}],
+          generationConfig:{maxOutputTokens:1500,temperature:creativity==="precise"?0.3:creativity==="expressive"?0.9:0.6}
         })
       });
       const data=await resp.json();
-      const text=data.content?.[0]?.text||"";
+      const text=data.candidates?.[0]?.content?.parts?.[0]?.text||data.error?.message||"No response received.";
       setOutput(text);
       const sections=text.split(/\n(?=[A-Z][A-Z\s&]+:)/).filter(s=>s.trim());
       const blocks=sections.slice(0,8).map((s,i)=>{
@@ -1482,20 +1484,21 @@ function VisionTab(){
       reader.readAsDataURL(image);
       reader.onload=async()=>{
         const b64=reader.result.split(",")[1];
-        const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        const vKey=localStorage.getItem("kp_api_key")||"";
+        const vUrl=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${vKey}`;
+        const resp=await fetch(vUrl,{
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
-            model:"claude-sonnet-4-20250514",
-            max_tokens:1000,
-            messages:[{role:"user",content:[
-              {type:"image",source:{type:"base64",media_type:image.type,data:b64}},
-              {type:"text",text:buildVisionPrompt(tool)}
-            ]}]
+            contents:[{parts:[
+              {inline_data:{mime_type:image.type,data:b64}},
+              {text:buildVisionPrompt(tool)}
+            ]}],
+            generationConfig:{maxOutputTokens:1500}
           })
         });
         const data=await resp.json();
-        setOutput(data.content?.[0]?.text||"No output");
+        setOutput(data.candidates?.[0]?.content?.parts?.[0]?.text||data.error?.message||"No output");
         setRunning(false);
       };
     }catch(e){
@@ -1559,6 +1562,9 @@ function VisionTab(){
 
 function App(){
   const [tab,setTab]=useState("generate");
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem("kp_api_key")||"");
+  const [showApiInput,setShowApiInput]=useState(false);
+  function saveKey(k){setApiKey(k);localStorage.setItem("kp_api_key",k);}
   const tabs=[
     {id:"generate",label:"Home"},
     {id:"grounding",label:"Grounding"},
@@ -1584,7 +1590,16 @@ function App(){
           <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",animation:"pulse 2s infinite"}}/>
           <span style={{fontSize:11,color:"#64748B",fontWeight:500}}>Live</span>
         </div>
+        <button onClick={()=>setShowApiInput(p=>!p)} style={{marginLeft:12,padding:"5px 12px",borderRadius:7,border:"0.5px solid "+(apiKey?"#22C55E":"#F97316"),background:apiKey?"#F0FDF4":"#FFF7ED",color:apiKey?"#15803D":"#C2410C",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>
+          {apiKey?"✓ Gemini Key":"⚠ Set Gemini Key"}
+        </button>
       </div>
+      {showApiInput&&<div style={{background:"#F8F9FB",borderTop:"0.5px solid #E5E7EB",padding:"10px 24px",display:"flex",gap:8,alignItems:"center"}}>
+        <span style={{fontSize:11,color:"#6B7280",whiteSpace:"nowrap"}}>Gemini API Key (free at aistudio.google.com):</span>
+        <input type="password" defaultValue={apiKey} placeholder="AIzaSy..." onBlur={e=>saveKey(e.target.value)} style={{flex:1,maxWidth:420,padding:"6px 10px",border:"0.5px solid #E5E7EB",borderRadius:6,fontSize:12,fontFamily:"JetBrains Mono,monospace",outline:"none"}}/>
+        <button onClick={()=>setShowApiInput(false)} style={{padding:"6px 12px",borderRadius:6,border:"none",background:"#0F172A",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>Save</button>
+        <span style={{fontSize:10,color:"#9CA3AF"}}>Stored locally in your browser only. Free tier — no credit card needed.</span>
+      </div>}
     </header>
 
     <main style={S.main}>
