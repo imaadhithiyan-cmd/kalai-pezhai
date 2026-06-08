@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalai Pezhai — Design Intelligence Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#F8F9FB;color:#111827;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:99px}
+code,pre,mono{font-family:'JetBrains Mono',monospace}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+// ─── BRAIN DATA ──────────────────────────────────────────────────────────────
+
+const BRAIN_STATS = {
+  total_rows: 4931, sheets: 32, knowledge_rows: 3492, logic_rows: 1439,
+  ks_entries: 633, boundaries: 373, tokens: 171, assemblies: 113,
+  drift_signals: 193, tools: 50, intents: 13
+};
+
+const ASSEMBLIES = {
+  INTENT_DATA_ENTRY:{id:"ASM_001",zone:"ZONE_STRICTLY_COHERENT",boundary:"BEH.DT",ks:"Inline Form Validation (KS-001) · Clear Error Messaging (KS-007) · Label Placement (KS-012)",instructions:"Fields validate on blur, not on submit. Label sits above every field at all times — never inside it as a placeholder. Error message appears directly below the field, names the field, states the exact correction. Group related fields under section headings. Required fields marked with visible indicator, not colour alone.",bounds:"Every field clearly indicates what is being asked. Consequences are visible before submitting. No structural bias between options."},
+  INTENT_WAYFINDING:{id:"ASM_004",zone:"ZONE_STRICTLY_COHERENT",boundary:"BEH.BP",ks:"Global Navigation Bar (KS-002) · Breadcrumb Trail (KS-014) · Skip Link (KS-031)",instructions:"Maximum 3 navigation levels. Labels are noun phrases describing destinations, not action verbs. Active page uses two visual signals — colour plus weight. Skip link is the first focusable element. Mobile navigation uses bottom tab bar for primary items, drawer for secondary.",bounds:"Similar actions produce similar outcomes. Patterns do not change without explanation. Navigation depth never exceeds 3 levels."},
+  INTENT_FEEDBACK:{id:"ASM_007",zone:"ZONE_STRICTLY_COHERENT",boundary:"EXP.EA",ks:"User Error Recovery (KS-008) · Informative Errors (KS-028) · Toast Pattern (KS-019)",instructions:"Name the system affected. Explain the state in plain language — no error codes as primary message. Show estimated resolution time for system errors. Provide a path forward. Feedback colour always paired with icon and text label. Toast notifications auto-dismiss after 5 seconds with manual dismiss available.",bounds:"Tone matches severity. Never trivialise a serious situation. Urgency matches actual risk. Colour is never the sole error signal."},
+  INTENT_ONBOARDING:{id:"ASM_017",zone:"ZONE_STRICTLY_COHERENT",boundary:"EXP.MC",ks:"Progressive Onboarding (KS-003) · Step Indicator (KS-022) · Value Proposition (KS-044)",instructions:"Progress indicator always shows total steps and current position. One focused task per step. Skip available on every step. Back navigation preserves all entered data. First step shows value, not setup. Celebration moment on completion.",bounds:"Intent is clear within seconds. One core idea per step. Data entered is never lost on back navigation."},
+  INTENT_CONFIGURATION:{id:"ASM_010",zone:"ZONE_STRICTLY_COHERENT",boundary:"BEH.AP",ks:"Account Settings Panel (KS-019) · Toggle Component (KS-031) · Destructive Action Pattern (KS-038)",instructions:"Maximum 6 labelled category groups. Every setting shows its current value before interaction. Toggles show both on and off labels. Destructive settings sit in a separate section, require confirmation. Changes auto-save with visible confirmation or require explicit save action — never both patterns in the same interface.",bounds:"Users are never forced into an action. Every setting is reversible unless explicitly marked permanent. Destructive actions require confirmation."},
+  INTENT_DECISION_SUPPORT:{id:"ASM_015",zone:"ZONE_STRICTLY_COHERENT",boundary:"BEH.DT",ks:"KPI Metric Card (KS-010) · Dashboard Layout (KS-011) · Data Table (KS-025) · Chart Pattern (KS-039)",instructions:"One recommended option or insight is visually dominant. Show the data that supports it. Comparison view aligns attributes in rows and options in columns. Primary metric above the fold. Trend direction indicated by both colour and icon. Data tables support sort and filter. Empty states explain why data is missing and what to do.",bounds:"Decision is clearly indicated. Options appear without structural bias. All required information present at decision moment. Data source is attributable."},
+  INTENT_CONSUMPTION:{id:"ASM_012",zone:"ZONE_CONTROLLED_EXPLORATION",boundary:"EXP.MC",ks:"Card Layout (KS-016) · Progressive Disclosure (KS-017) · Reading View (KS-029)",instructions:"Primary message above the fold. Supporting evidence in the first scroll. Heading levels H1-H3 used in sequence. Body text minimum 16px. Lines no longer than 75 characters. Images have alt text. Video has captions. Infinite scroll has a load-more fallback.",bounds:"Intent is clear within the first few seconds. Primary message is visually dominant. Content hierarchy is unambiguous."},
+  INTENT_RECOVERY:{id:"ASM_020",zone:"ZONE_STRICTLY_COHERENT",boundary:"BEH.BP",ks:"Clear Error Messaging (KS-007) · Recovery Path (KS-033) · Offline State (KS-047)",instructions:"Name the system affected. Plain language — no stack trace as primary message. Show estimated recovery time when known. Provide an alternative path forward. Never a blank white screen. Offline state explains what is and is not available. Retry action is always accessible.",bounds:"System responses are consistent. User actions have clear outcomes. Recovery path is always present."},
+  INTENT_MOTION_VIDEO:{id:"ASM_025",zone:"ZONE_CONTROLLED_EXPLORATION",boundary:"MOT.AP,MOT.BM,MOT.NR",ks:"Disney 12 Principles (KS-582) · Anticipation (KS-584) · Staging (KS-585) · Motion Narrative (KS-591) · Logo Animation (KS-593) · Easing Physics (KS-598)",instructions:"Define scene sequence explicitly with scene number, duration, visual description, camera move, transition type. Specify timing in seconds for every element. Hook within first 3 seconds — no logo-only opening. One concept per scene. Staging rule: only one primary motion at any moment. Stagger multi-element reveals at 40-80ms in reading direction. Ease-out for entries, ease-in for exits, spring only for delight moments.",bounds:"No simultaneous primary-level motions without stagger. No organic element in straight-line path. No linear easing on organic positional animation. Hook in first 3 seconds on pieces under 90 seconds."},
+  INTENT_UX_RESEARCH:{id:"ASM_030",zone:"ZONE_STRICTLY_COHERENT",boundary:"EXP.EA",ks:"Research Discussion Guide (KS-050) · Synthesis Canvas (KS-051) · Insight Card (KS-052) · Journey Map (KS-053) · Persona Card (KS-054)",instructions:"Specify the research method first. Define the phase: Discover, Define, Design, Validate. State the output artefact clearly. For discussion guides: open questions first, probing follow-ups second, never leading. For synthesis artefacts: group by theme not by participant. Every insight maps to an HMW statement or design opportunity.",bounds:"Research output must connect to a design action. No orphaned insights. Participant data is never identifiable in shared artefacts."},
+  INTENT_INSTRUCTIONAL_DESIGN:{id:"ASM_087",zone:"ZONE_STRICTLY_COHERENT",boundary:"LRN.OD,LRN.DM",ks:"Bloom's Taxonomy (KS-517) · Gagne's Nine Events (KS-518) · Mayer's Multimedia Principles (KS-522) · VILT Design (KS-612) · Microlearning Rules (KS-615) · Modality Selection (KS-620)",instructions:"Every learning objective must specify a Bloom's taxonomy level using a measurable action verb. Every module must evidence all nine Gagne events. On-screen text must not duplicate narration verbatim (Mayer Redundancy Principle). VILT sessions must include an engagement touchpoint every 4-7 minutes. Microlearning assets must begin within 10 seconds with zero preamble. Modality must be justified against the objective type.",bounds:"No learning objective without a Bloom's level. No VILT session with more than 7 minutes between engagement touchpoints. No microlearning asset over 7 minutes. No affective objective at Valuing level delivered through self-paced eLearning alone."},
+  INTENT_DESIGN_SYSTEM:{id:"ASM_111",zone:"ZONE_STRICTLY_COHERENT",boundary:"DS.TK,DS.CM,DS.LX",ks:"Token Architecture (KS-623) · Component Documentation (KS-624) · Contribution Model (KS-625) · Figma Sync (KS-629) · Accessibility Baked In (KS-630) · Component API (KS-632) · Token Naming (KS-633)",instructions:"All tokens follow the three-tier architecture — primitive, semantic, component. Semantic token names describe role not appearance: color/interactive/primary not color/blue/500. Component documentation must include all nine minimum sections before stable release. Component API uses governed prop naming — variant, size, disabled, loading, error, className. Accessibility is baked in by default — no component released without ARIA role, keyboard pattern, and axe-core zero violations.",bounds:"No semantic token with appearance-based name. No component marked stable without complete documentation. No component deployed without zero axe-core violations. No breaking change without MAJOR version increment and migration guide."}
+};
+
+const L7_RULES = [
+  "Interactive elements use color/interactive/primary. Focus state shows a visible 2px ring — never suppress it.",
+  "Success, error, and warning states always pair colour with an icon and a text label. Colour alone is never the signal.",
+  "Active navigation uses two visual signals — colour plus weight, or colour plus underline. Never colour alone.",
+  "One P1 element per screen. Every hierarchy distinction needs at least two simultaneous signals.",
+  "Touch targets: 44x44px preferred, 24x24px absolute minimum (WCAG 2.5.8). No exceptions.",
+  "Body text: 16px minimum, line-height 1.5. All text uses rem units, never fixed px.",
+  "Critical information visible by default — never behind hover or tooltip. Every error states: what failed, why, and how to fix it.",
+  "Flash rate never exceeds 3 per second. prefers-reduced-motion is always honoured.",
+  "Motion easing: ease-out for entries, ease-in for exits, spring only for delight moments. Never linear on organic positional motion.",
+  "Motion timing: instant 100ms, fast 200ms, medium 350ms, slow 600ms. No arbitrary values.",
+  "Stagger multi-element reveals at 40-80ms per element in reading direction.",
+  "Focus not obscured: no focused element may be entirely hidden by sticky headers or floating elements (WCAG 2.4.11).",
+  "Dragging alternatives: all drag interactions must have a single-pointer or keyboard alternative (WCAG 2.5.7).",
+  "Redundant entry: information already entered in the same session must be auto-populated in subsequent steps.",
+  "Design tokens: semantic tokens describe role not appearance. All component values reference tokens, never hardcoded hex.",
+  "Component defaults: every component works correctly with zero configuration. Sensible defaults are mandatory."
+];
+
+const LRN_RULES = [
+  "Every learning objective: Bloom's level + measurable action verb + single outcome. No vague verbs.",
+  "All nine Gagne events must be evidenced across every complete learning module.",
+  "Mayer Redundancy: on-screen text during narration must not duplicate the narration script.",
+  "Segmentation: no continuous segment exceeds 7 minutes without a learner-controlled break.",
+  "Assessment feedback: explanatory, not confirmatory. Each distractor gets unique feedback.",
+  "VILT: engagement touchpoint required every 4-7 minutes. Closed captions must be enabled.",
+  "Microlearning: zero preamble — content within 10 seconds. Maximum 7 minutes. One objective per asset.",
+  "Modality match: cognitive objectives go online. Affective objectives at Valuing and above require synchronous.",
+  "OJT: performance standard defined before training begins. Sign-off requires observed performance.",
+  "SCORM: test against target LMS before learner deployment.",
+];
+
+const INTENT_KW = {
+  INTENT_DATA_ENTRY:["form","login","sign in","register","signup","input","checkout","payment","credentials","field","fill"],
+  INTENT_WAYFINDING:["navigation","menu","nav","breadcrumb","sidebar","tab bar","header","sitemap"],
+  INTENT_FEEDBACK:["error","success","notification","alert","toast","status","feedback","empty state","loading","message"],
+  INTENT_ONBOARDING:["onboarding","welcome","getting started","tutorial","walkthrough","setup","first time"],
+  INTENT_CONFIGURATION:["settings","preferences","account","manage","customize","toggle","options","profile"],
+  INTENT_DECISION_SUPPORT:["dashboard","analytics","comparison","report","chart","graph","kpi","metrics","data table","insight"],
+  INTENT_CONSUMPTION:["article","read","content","feed","card","list","grid","detail","landing","website","blog"],
+  INTENT_RECOVERY:["error page","404","500","offline","maintenance","recovery","retry","failed","unavailable"],
+  INTENT_MOTION_VIDEO:["video","animation","motion","explainer","storyboard","scene","sequence","logo","kinetic","film"],
+  INTENT_UX_RESEARCH:["user interview","research","jtbd","persona","journey map","user flow","survey","synthesis","affinity","usability"],
+  INTENT_INSTRUCTIONAL_DESIGN:["elearning","e-learning","storyboard","bloom","gagne","vilt","microlearning","scorm","course","module","instructional","lesson","assessment","quiz"],
+  INTENT_DESIGN_SYSTEM:["design token","component spec","storybook","contribution","semantic token","design system","token","component library","figma variable"]
+};
+
+const INTENT_LABELS = {
+  INTENT_DATA_ENTRY:"Data Entry",INTENT_WAYFINDING:"Wayfinding",INTENT_FEEDBACK:"Feedback",
+  INTENT_ONBOARDING:"Onboarding",INTENT_CONFIGURATION:"Configuration",
+  INTENT_DECISION_SUPPORT:"Decision Support",INTENT_CONSUMPTION:"Content",
+  INTENT_RECOVERY:"Error Recovery",INTENT_MOTION_VIDEO:"Motion / Video",
+  INTENT_UX_RESEARCH:"UX Research",INTENT_INSTRUCTIONAL_DESIGN:"Instructional Design",
+  INTENT_DESIGN_SYSTEM:"Design System"
+};
+
+const PROMPT_TYPES = [
+  {id:"descriptive",label:"Descriptive",icon:"D",accuracy:72,color:"#7C3AED",bg:"#F5F3FF",tools:"Brief, ChatGPT, Claude, Gamma, NotebookLM",desc:"Rich narrative prose with context, tone, and direction"},
+  {id:"instructional",label:"Instructional",icon:"I",accuracy:88,color:"#2563EB",bg:"#EFF6FF",tools:"Figma, Framer, Storyline, Rise, Captivate, H5P",desc:"Step-by-step directives in the tool's native element model"},
+  {id:"constraint",label:"Constraint",icon:"C",accuracy:94,color:"#DC2626",bg:"#FEF2F2",tools:"Data Entry, Error Recovery, eLearning certification",desc:"Boundary-first structure — what must be true, what must never happen"},
+  {id:"evaluative",label:"Evaluative",icon:"E",accuracy:81,color:"#0369A1",bg:"#F0F9FF",tools:"UX Research, Decision Support, DS audits",desc:"Audit and analysis structure with severity and design actions"},
+  {id:"generative",label:"Generative",icon:"G",accuracy:78,color:"#D97706",bg:"#FFFBEB",tools:"Midjourney, DALL-E, Runway, Sora, Kling, Luma",desc:"Token-weighted creative prompt — subject first, then style"},
+  {id:"structural",label:"Structural",icon:"S",accuracy:91,color:"#15803D",bg:"#F0FDF4",tools:"v0, GitHub Copilot, Cursor, Replit",desc:"Schema and architecture spec — data model, all states, keyboard behaviour"}
+];
+
+const TOOLS = [
+  {id:"brief",label:"Design Brief",group:"strategy"},
+  {id:"figma",label:"Figma AI",group:"design"},{id:"framer",label:"Framer AI",group:"design"},
+  {id:"gamma",label:"Gamma",group:"design"},{id:"uizard",label:"Uizard",group:"design"},
+  {id:"v0",label:"v0 / Vercel",group:"code"},{id:"cursor",label:"Cursor",group:"code"},
+  {id:"copilot",label:"GitHub Copilot",group:"code"},{id:"replit",label:"Replit",group:"code"},
+  {id:"chatgpt",label:"ChatGPT",group:"ai"},{id:"claude",label:"Claude",group:"ai"},
+  {id:"notebooklm",label:"NotebookLM",group:"ai"},{id:"gemini",label:"Gemini",group:"ai"},
+  {id:"midjourney",label:"Midjourney",group:"image"},{id:"dalle",label:"DALL-E 3",group:"image"},
+  {id:"firefly",label:"Adobe Firefly",group:"image"},{id:"sd",label:"Stable Diffusion",group:"image"},
+  {id:"runway",label:"Runway ML",group:"motion"},{id:"sora",label:"Sora",group:"motion"},
+  {id:"kling",label:"Kling AI",group:"motion"},{id:"luma",label:"Luma AI",group:"motion"},
+  {id:"storyline",label:"Storyline 360",group:"elearning"},{id:"rise",label:"Articulate Rise",group:"elearning"},
+  {id:"captivate",label:"Adobe Captivate",group:"elearning"},{id:"h5p",label:"H5P",group:"elearning"},
+  {id:"ispring",label:"iSpring Suite",group:"elearning"},
+  {id:"storybook",label:"Storybook",group:"designsystem"},{id:"styledict",label:"Style Dictionary",group:"designsystem"},
+  {id:"tokensstudio",label:"Tokens Studio",group:"designsystem"},{id:"zeroheight",label:"ZeroHeight",group:"designsystem"}
+];
+
+const TOOL_SPECS = {
+  brief:{how:"Design Brief is read by human designers. It needs professional clarity, zero ambiguity, and enough specificity that two designers working independently produce near-identical work.",style:"Structured prose with clear labeled sections. Write like a senior UX strategist handing off to a designer.",format:"WHAT YOU ARE DESIGNING · PROBLEM THIS SOLVES · USER CONTEXT · DESIGN INTENT · LAYOUT AND HIERARCHY · COMPONENTS · VISUAL DIRECTION · COPY GUIDELINES · INTERACTION BEHAVIOUR · RESPONSIVE BEHAVIOUR · WHAT MUST NOT HAPPEN · OPEN QUESTIONS"},
+  figma:{how:"Figma AI reads natural language and generates Auto Layout components. It understands Figma vocabulary: Auto Layout, Frame, Component, Variant, Instance, Padding, Gap, resizing (hug, fill, fixed). No vague adjectives.",style:"Dense natural-language spec string outlining hierarchy, dimensions, and states with exact token values.",format:"Frame name > Auto Layout direction > padding > gap > child components with exact token names for fills, strokes, and typography"},
+  v0:{how:"v0 generates React + TypeScript + Tailwind CSS code. It understands Tailwind class utilities and shadcn UI component names. It expects state management (useState) and clear component scopes.",style:"Imperative statement followed by logical paragraphs describing Tailwind styling and interactivity.",format:"Component structure > Tailwind classes > state hooks > interaction handlers > accessibility attributes"},
+  midjourney:{how:"Midjourney reads visual nouns, style descriptors, colour temperatures, and quality tags. It does not understand commands or complex instructions. Earlier tokens carry more weight.",style:"Tokenized keywords separated by commas, ending with parameters like --ar 16:9 --v 6.1 --style raw",format:"Subject description, style reference, lighting, colour palette, composition, mood, quality modifiers, --ar --v --style parameters"},
+  storyline:{how:"Articulate Storyline 360 is a slide-based eLearning authoring tool. It uses triggers (on click, on timeline end, on state change), layers, variables, and states. It generates SCORM output.",style:"Slide-by-slide specification with Gagne event annotation, trigger logic, and variable declarations.",format:"SLIDE [N] - [Gagne Event]\nSlide title: [exact]\nOn-screen text: [exact - not duplicating narration]\nSpeaker notes/narration: [verbatim]\nTrigger: [when] [action] [target]\nState changes: [element] changes state to [state] when [condition]"},
+  chatgpt:{how:"ChatGPT and Claude expect explicit persona assignments, detailed structural specifications, strict limitations, and edge-case instructions. They excel at generating detailed UX copy, specifications, and checklists.",style:"Second-person instructions. Detail role (Senior Product Designer), task parameters, and structured outputs.",format:"Role assignment > Task specification > Output structure > Quality requirements > What must not appear"},
+  runway:{how:"Runway Gen-4 is a text-to-video model. It expects present-tense physical actions, explicit camera movement tags (pan, dolly, orbit, crane), atmospheric lighting, and secondary movement details.",style:"Present-tense detailed camera direction text with motion intensity controls.",format:"MAIN PROMPT: [present tense physical description with camera movement]\nNEGATIVE: [what must not appear]\nSETTINGS: duration [4-16s], aspect ratio, motion strength"},
+  storybook:{how:"Storybook is a component development and documentation environment. It renders components in isolation with configurable args/controls, addons for accessibility (axe), viewport, and design (Figma link).",style:"Story-first specification in CSF3 format with play functions for interaction testing.",format:"Component: [Name]\nDefault story: args, render, axe expectation\nVariant stories: one per significant state\nPlay function: userEvent interactions and expect assertions\nAccessibility: ARIA role, keyboard pattern\nDesign link: Figma component URL"}
+};
+
+const RESEARCH_METHODS = [
+  {id:"interviews",name:"User Interviews",phase:"Discover",type:"Qualitative",color:"#7C3AED",bg:"#F5F3FF",when:"Before defining the problem. When you don't know what users actually need.",output:"JTBD statements, mental models, workflows, and core user goals.",prompt:"UX research discussion guide for a user interview about [topic]"},
+  {id:"contextual",name:"Contextual Inquiry",phase:"Discover",type:"Observational",color:"#0F766E",bg:"#F0FDFA",when:"When observing users in their natural environment to identify actual shadow workflows.",output:"Observed task flow deviations, physical environments, workarounds.",prompt:"Contextual inquiry study plan to observe [role] performing [task]"},
+  {id:"personas",name:"Persona Development",phase:"Define",type:"Synthesis",color:"#BE185D",bg:"#FDF2F8",when:"To build empathy and establish a shared user model for the cross-functional team.",output:"Behavioural archetypes, technology comfort scores, key JTBD, specific triggers.",prompt:"Behavioural user persona profile for a [role] managing [context]"},
+  {id:"journey",name:"Journey Mapping",phase:"Define",type:"Synthesis",color:"#047857",bg:"#ECFDF5",when:"After research to visualise user emotions, touchpoints, and friction points over time.",output:"Touchpoints timeline, emotional curve, drop-off markers, design opportunity map.",prompt:"Journey map specification with emotional curve for [user] completing [task]"},
+  {id:"taskflows",name:"Task and Decision Flows",phase:"Design",type:"Logic",color:"#6D28D9",bg:"#F5F3FF",when:"Before visual prototyping to map the logical steps, error branches, and states.",output:"Unified logic trees, error recovery loops, system inputs, feedback states.",prompt:"User task flow and decision tree for [task] including all error branches"},
+  {id:"usability",name:"Usability Testing",phase:"Validate",type:"Validation",color:"#0F766E",bg:"#F0FDFA",when:"To identify critical navigation blocks and tasks users fail to complete in prototypes.",output:"Task completion rates, time-on-task, usability severity scores.",prompt:"Usability test script and tasks for validation of [feature or flow]"},
+  {id:"analytics",name:"Product Analytics",phase:"Validate",type:"Quantitative",color:"#15803D",bg:"#F0FDF4",when:"To monitor post-launch cohort behaviours, funnel completions, and drop-off points.",output:"Funnel drop-off charts, conversion rates, event logs, cohort retention tables.",prompt:"Product analytics dashboard tracking [funnel or flow] step by step"},
+  {id:"surveys",name:"Surveys and NPS",phase:"Validate",type:"Quantitative",color:"#D97706",bg:"#FFFBEB",when:"To measure satisfaction, Net Promoter Scores, or usability indices at scale.",output:"NPS ratings, feature CSAT scores, satisfaction trends, comment logs.",prompt:"In-product feedback survey flow with NPS for [product or feature]"}
+];
+
+const SANDBOX_COMPONENTS = {
+  // ── INTERACTIVE ──────────────────────────────────────────────
+  button:{
+    label:"Button",group:"Interactive",
+    states:["default","hover","focus","active","disabled","loading"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz,th)=>{
+      const h={sm:36,md:44,lg:52}[sz]||44,px={sm:14,md:20,lg:28}[sz]||20,fs={sm:13,md:14,lg:15}[sz]||14;
+      const map={default:{bg:"#2563EB",col:"#fff",cur:"pointer"},hover:{bg:"#1D4ED8",col:"#fff",cur:"pointer"},focus:{bg:"#2563EB",col:"#fff",cur:"pointer",ring:"0 0 0 3px #93C5FD"},active:{bg:"#1E40AF",col:"#fff",cur:"pointer"},disabled:{bg:"#E5E7EB",col:"#9CA3AF",cur:"not-allowed"},loading:{bg:"#2563EB",col:"#fff99",cur:"wait"}};
+      const st=map[s]||map.default;
+      return {type:"button",style:{height:h,padding:"0 "+px+"px",borderRadius:8,border:"none",background:st.bg,color:st.col,fontSize:fs,fontWeight:500,cursor:st.cur,boxShadow:st.ring||"none",fontFamily:"Inter,sans-serif",minWidth:120,display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6},label:s==="loading"?"Saving...":"Save changes",disabled:s==="disabled"||s==="loading",showSpinner:s==="loading"};
+    },
+    tokens:(s,sz)=>{const h={sm:36,md:44,lg:52}[sz]||44;const m={default:[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/text/inverse",v:"#FFFFFF",sw:"#FFFFFF"},{n:"component/button/height/"+sz,v:h+"px"},{n:"radius/md",v:"8px"}],hover:[{n:"color/interactive/primary/hover",v:"#1D4ED8",sw:"#1D4ED8"},{n:"motion/duration/instant",v:"100ms"},{n:"component/button/height/"+sz,v:h+"px"}],focus:[{n:"accessibility/focus/ring-width",v:"2px"},{n:"accessibility/focus/ring-offset",v:"2px"},{n:"accessibility/focus/ring-contrast",v:"3:1 min"},{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"}],active:[{n:"color/interactive/primary/active",v:"#1E40AF",sw:"#1E40AF"},{n:"component/button/height/"+sz,v:h+"px"}],disabled:[{n:"color/background/disabled",v:"#E5E7EB",sw:"#E5E7EB"},{n:"color/text/disabled",v:"#9CA3AF",sw:"#9CA3AF"}],loading:[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"motion/duration/slow",v:"600ms"}]};return m[s]||m.default;},
+    audit:(s,sz)=>{const h={sm:36,md:44,lg:52}[sz]||44;return [{l:"Contrast",v:s==="disabled"?"exempt":s==="hover"?"7.12:1 — AAA":"5.41:1 — AA pass",p:s==="disabled"?null:true},{l:"Touch target",v:h+"px — "+(h>=44?"pass":h>=24?"min pass":"FAIL"),p:h>=44?true:h>=24?null:false},{l:"Focus ring",v:s==="focus"?"visible — pass":s==="disabled"?"exempt":"n/a",p:s==="focus"?true:null},{l:"Colour alone",v:"pass — label present",p:true}];}
+  },
+  link:{
+    label:"Link",group:"Interactive",
+    states:["default","hover","focus","visited","disabled"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s)=>{
+      const map={default:{col:"#2563EB",dec:"underline"},hover:{col:"#1D4ED8",dec:"underline"},focus:{col:"#2563EB",dec:"underline",ring:"0 0 0 2px #93C5FD"},visited:{col:"#7C3AED",dec:"underline"},disabled:{col:"#9CA3AF",dec:"none",cur:"not-allowed"}};
+      const st=map[s]||map.default;
+      return {type:"link",style:{color:st.col,textDecoration:st.dec,fontSize:14,cursor:st.cur||"pointer",fontFamily:"Inter,sans-serif",outline:"none",boxShadow:st.ring||"none",borderRadius:2},label:"View documentation"};
+    },
+    tokens:(s)=>[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/interactive/visited",v:"#7C3AED",sw:"#7C3AED"},{n:"color/text/disabled",v:"#9CA3AF",sw:"#9CA3AF"}],
+    audit:(s)=>[{l:"Contrast",v:s==="disabled"?"exempt":s==="visited"?"5.12:1 — AA pass":"5.41:1 — AA pass",p:s==="disabled"?null:true},{l:"Underline visible",v:s==="disabled"?"n/a":"pass — underline present",p:s==="disabled"?null:true},{l:"Not colour alone",v:"pass — underline + colour",p:true}]
+  },
+  toggle:{
+    label:"Toggle",group:"Interactive",
+    states:["off","on","disabled","loading"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{
+      const w=sz==="sm"?36:44,h=sz==="sm"?20:24,r=sz==="sm"?16:20;
+      const on=s==="on"||s==="loading";
+      return {type:"toggle",width:w,height:h,thumbSize:r,on,disabled:s==="disabled",loading:s==="loading",bgOn:"#2563EB",bgOff:"#E5E7EB",bgDisabled:"#F3F4F6",thumbColor:"#fff"};
+    },
+    tokens:(s)=>[{n:s==="on"?"color/interactive/primary":"color/background/subtle",v:s==="on"?"#2563EB":"#E5E7EB",sw:s==="on"?"#2563EB":"#E5E7EB"},{n:"color/text/inverse",v:"#FFFFFF",sw:"#FFFFFF"},{n:"radius/full",v:"999px"},{n:"motion/duration/fast",v:"200ms"}],
+    audit:(s)=>[{l:"Label present",v:"required — check implementation",p:null},{l:"Touch target",v:"44x44px wrapper required",p:null},{l:"State announced",v:"aria-checked required",p:null},{l:"Focus ring",v:s==="disabled"?"exempt":"required on wrapper",p:null}]
+  },
+  checkbox:{
+    label:"Checkbox",group:"Interactive",
+    states:["unchecked","checked","indeterminate","disabled","error"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{
+      const size=sz==="sm"?16:20;
+      return {type:"checkbox",size,state:s,bgMap:{unchecked:"#fff",checked:"#2563EB",indeterminate:"#2563EB",disabled:"#F9FAFB",error:"#fff"},borderMap:{unchecked:"#D1D5DB",checked:"#2563EB",indeterminate:"#2563EB",disabled:"#E5E7EB",error:"#DC2626"}};
+    },
+    tokens:(s)=>[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/feedback/error",v:"#DC2626",sw:"#DC2626"},{n:"color/background/disabled",v:"#F9FAFB",sw:"#F9FAFB"},{n:"radius/sm",v:"4px"}],
+    audit:(s)=>[{l:"Touch target",v:"min 24x24px area required",p:null},{l:"Label association",v:"for/id or aria-label required",p:null},{l:"Indeterminate",v:s==="indeterminate"?"aria-checked=mixed required":null,p:null},{l:"Error communication",v:s==="error"?"error text required alongside":null,p:null}]
+  },
+  radio:{
+    label:"Radio",group:"Interactive",
+    states:["unselected","selected","disabled","error"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{
+      const size=sz==="sm"?16:20,dot=sz==="sm"?6:8;
+      return {type:"radio",size,dotSize:dot,selected:s==="selected",disabled:s==="disabled",error:s==="error"};
+    },
+    tokens:(s)=>[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/border/default",v:"#D1D5DB",sw:"#D1D5DB"},{n:"color/feedback/error",v:"#DC2626",sw:"#DC2626"},{n:"radius/full",v:"999px"}],
+    audit:(s)=>[{l:"Group label",v:"fieldset+legend or role=radiogroup required",p:null},{l:"Touch target",v:"min 24x24px",p:null},{l:"Keyboard nav",v:"arrow keys between options required",p:null}]
+  },
+  // ── FORM ─────────────────────────────────────────────────────
+  input:{
+    label:"Text Input",group:"Form",
+    states:["default","focus","filled","error","disabled"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{
+      const h={sm:34,md:40,lg:48}[sz]||40,fs={sm:13,md:14,lg:15}[sz]||14;
+      const map={default:{bg:"#fff",border:"1px solid #E5E7EB",ring:"none"},focus:{bg:"#fff",border:"1.5px solid #2563EB",ring:"0 0 0 3px #DBEAFE"},filled:{bg:"#fff",border:"1px solid #D1D5DB",ring:"none"},error:{bg:"#fff",border:"1.5px solid #DC2626",ring:"none"},disabled:{bg:"#F9FAFB",border:"1px solid #E5E7EB",ring:"none"}};
+      const st=map[s]||map.default;
+      return {type:"input",style:{height:h,padding:"0 12px",borderRadius:8,border:st.border,background:st.bg,fontSize:fs,fontFamily:"Inter,sans-serif",outline:"none",boxShadow:st.ring||"none",color:s==="disabled"?"#9CA3AF":"#111827",width:"100%",boxSizing:"border-box"},placeholder:s==="filled"?undefined:"Enter value",value:s==="filled"?"john@company.com":s==="disabled"?"read-only@company.com":undefined,disabled:s==="disabled",errorMsg:s==="error"?"Enter a valid email address":null};
+    },
+    tokens:(s,sz)=>{const h={sm:34,md:40,lg:48}[sz]||40;return [{n:"color/border/"+(s==="error"?"error":s==="focus"?"focus":"default"),v:s==="error"?"#DC2626":s==="focus"?"#2563EB":"#E5E7EB",sw:s==="error"?"#DC2626":s==="focus"?"#2563EB":"#E5E7EB"},{n:"component/input/height/"+sz,v:h+"px"},{n:"radius/md",v:"8px"},{n:"space/component/padding-md",v:"12px"}];},
+    audit:(s,sz)=>{const h={sm:34,md:40,lg:48}[sz]||40;return [{l:"Touch target",v:h+"px — "+(h>=44?"preferred pass":h>=24?"min pass":"FAIL"),p:h>=44?true:h>=24?null:false},{l:"Label above field",v:"required — visible always",p:null},{l:"Error text",v:s==="error"?"required alongside colour":null,p:null},{l:"Autocomplete",v:"autocomplete attr required for personal data",p:null}];}
+  },
+  textarea:{
+    label:"Textarea",group:"Form",
+    states:["default","focus","error","disabled"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>{
+      const map={default:{border:"1px solid #E5E7EB",ring:"none"},focus:{border:"1.5px solid #2563EB",ring:"0 0 0 3px #DBEAFE"},error:{border:"1.5px solid #DC2626",ring:"none"},disabled:{border:"1px solid #E5E7EB",ring:"none",bg:"#F9FAFB"}};
+      const st=map[s]||map.default;
+      return {type:"textarea",style:{width:"100%",minHeight:80,padding:"10px 12px",borderRadius:8,border:st.border,background:st.bg||"#fff",fontSize:14,fontFamily:"Inter,sans-serif",outline:"none",boxShadow:st.ring||"none",color:s==="disabled"?"#9CA3AF":"#111827",resize:"vertical",boxSizing:"border-box"},placeholder:"Describe your request...",disabled:s==="disabled"};
+    },
+    tokens:(s)=>[{n:"color/border/"+(s==="error"?"error":s==="focus"?"focus":"default"),v:s==="error"?"#DC2626":s==="focus"?"#2563EB":"#E5E7EB",sw:s==="error"?"#DC2626":s==="focus"?"#2563EB":"#E5E7EB"},{n:"radius/md",v:"8px"},{n:"space/component/padding-md",v:"12px"}],
+    audit:(s)=>[{l:"Min height",v:"80px — verify readability",p:null},{l:"Resize handle",v:"resize: vertical — correct",p:true},{l:"Character count",v:"optional but recommended",p:null}]
+  },
+  select:{
+    label:"Select",group:"Form",
+    states:["closed","open","selected","disabled","error"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{
+      const h={sm:34,md:40,lg:48}[sz]||40;
+      const border=s==="error"?"1.5px solid #DC2626":s==="open"?"1.5px solid #2563EB":"1px solid #E5E7EB";
+      return {type:"select",height:h,border,disabled:s==="disabled",value:s==="selected"?"Product Designer":null,error:s==="error",open:s==="open"};
+    },
+    tokens:(s,sz)=>{const h={sm:34,md:40,lg:48}[sz]||40;return [{n:"component/input/height/"+sz,v:h+"px"},{n:"color/border/"+(s==="error"?"error":s==="open"?"focus":"default"),v:s==="error"?"#DC2626":s==="open"?"#2563EB":"#E5E7EB",sw:s==="error"?"#DC2626":s==="open"?"#2563EB":"#E5E7EB"},{n:"radius/md",v:"8px"}];},
+    audit:(s)=>[{l:"Touch target",v:"40px — min pass",p:null},{l:"Keyboard nav",v:"arrow keys required",p:null},{l:"Options announced",v:"role=listbox + role=option",p:null}]
+  },
+  // ── FEEDBACK ──────────────────────────────────────────────────
+  badge:{
+    label:"Badge",group:"Feedback",
+    states:["neutral","success","warning","error","info"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s)=>{const map={neutral:{bg:"#F3F4F6",col:"#374151",label:"In progress"},success:{bg:"#DCFCE7",col:"#166534",label:"Approved"},warning:{bg:"#FEF3C7",col:"#92400E",label:"Pending"},error:{bg:"#FEE2E2",col:"#991B1B",label:"Rejected"},info:{bg:"#DBEAFE",col:"#1E40AF",label:"In review"}};const st=map[s]||map.neutral;return {type:"badge",style:{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 10px",borderRadius:999,background:st.bg,color:st.col,fontSize:12,fontWeight:500,fontFamily:"Inter,sans-serif"},label:st.label,state:s};},
+    tokens:(s)=>[{n:"color/feedback/"+s+"/subtle",v:{neutral:"#F3F4F6",success:"#DCFCE7",warning:"#FEF3C7",error:"#FEE2E2",info:"#DBEAFE"}[s],sw:{neutral:"#F3F4F6",success:"#DCFCE7",warning:"#FEF3C7",error:"#FEE2E2",info:"#DBEAFE"}[s]},{n:"color/feedback/"+s+"/text",v:{neutral:"#374151",success:"#166534",warning:"#92400E",error:"#991B1B",info:"#1E40AF"}[s],sw:{neutral:"#374151",success:"#166534",warning:"#92400E",error:"#991B1B",info:"#1E40AF"}[s]},{n:"component/badge/radius",v:"999px"},{n:"size/text/xs",v:"12px"}],
+    audit:(s)=>[{l:"Contrast",v:s==="neutral"?"7.43:1 — AAA":s==="success"?"6.10:1 — AA":s==="warning"?"5.74:1 — AA":s==="error"?"7.28:1 — AAA":"7.00:1 — AAA",p:true},{l:"Icon required",v:s==="neutral"?"add icon for status":s!=="neutral"?"icon paired — verify":null,p:s==="neutral"?null:true},{l:"Colour alone",v:s==="neutral"?"check — add icon":null,p:s==="neutral"?null:true}]
+  },
+  alert:{
+    label:"Alert",group:"Feedback",
+    states:["info","success","warning","error"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>{const map={info:{bg:"#EFF6FF",border:"#BFDBFE",icon:"ℹ",col:"#1E40AF",title:"Information",msg:"This action will affect all team members."},success:{bg:"#F0FDF4",border:"#BBF7D0",icon:"✓",col:"#166534",title:"Changes saved",msg:"Your settings have been updated successfully."},warning:{bg:"#FFFBEB",border:"#FDE68A",icon:"⚠",col:"#92400E",title:"Proceed with caution",msg:"This action cannot be undone once confirmed."},error:{bg:"#FEF2F2",border:"#FECACA",icon:"✕",col:"#991B1B",title:"Something went wrong",msg:"Unable to save changes. Please try again."}};const st=map[s]||map.info;return {type:"alert",...st,borderColor:st.border};},
+    tokens:(s)=>[{n:"color/feedback/"+s+"/subtle",v:{info:"#EFF6FF",success:"#F0FDF4",warning:"#FFFBEB",error:"#FEF2F2"}[s],sw:{info:"#EFF6FF",success:"#F0FDF4",warning:"#FFFBEB",error:"#FEF2F2"}[s]},{n:"color/feedback/"+s+"/border",v:{info:"#BFDBFE",success:"#BBF7D0",warning:"#FDE68A",error:"#FECACA"}[s],sw:{info:"#BFDBFE",success:"#BBF7D0",warning:"#FDE68A",error:"#FECACA"}[s]},{n:"radius/md",v:"8px"},{n:"space/component/padding-md",v:"12px"}],
+    audit:(s)=>[{l:"Icon present",v:"required alongside colour",p:true},{l:"Heading + body",v:"title + message structure",p:true},{l:"Dismissible",v:"close button with aria-label required if dismissible",p:null},{l:"Role=alert",v:s==="error"?"role=alert for screen readers":null,p:null}]
+  },
+  toast:{
+    label:"Toast",group:"Feedback",
+    states:["info","success","warning","error"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>{const map={info:{bg:"#1E293B",icon:"ℹ",iconCol:"#60A5FA",msg:"Document saved to cloud"},success:{bg:"#14532D",icon:"✓",iconCol:"#4ADE80",msg:"Changes published successfully"},warning:{bg:"#78350F",icon:"⚠",iconCol:"#FCD34D",msg:"Session expires in 5 minutes"},error:{bg:"#7F1D1D",icon:"✕",iconCol:"#FCA5A5",msg:"Failed to save. Retrying..."}};const st=map[s]||map.info;return {type:"toast",...st};},
+    tokens:(s)=>[{n:"color/background/inverse",v:"#1E293B",sw:"#1E293B"},{n:"color/text/inverse",v:"#F8FAFC",sw:"#F8FAFC"},{n:"radius/md",v:"8px"},{n:"space/component/padding-md",v:"12px"},{n:"shadow/lg",v:"0 10px 15px rgba(0,0,0,0.1)"}],
+    audit:(s)=>[{l:"Auto-dismiss",v:"5s default — pause on hover required",p:null},{l:"Manual dismiss",v:"close button always present",p:null},{l:"Role=status",v:"aria-live=polite for non-critical",p:null},{l:"Position",v:"bottom-right or top-right, never blocking content",p:null}]
+  },
+  spinner:{
+    label:"Spinner",group:"Feedback",
+    states:["default"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{const size={sm:16,md:24,lg:36}[sz]||24;return {type:"spinner",size,color:"#2563EB",track:"#E5E7EB"};},
+    tokens:()=>[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/border/default",v:"#E5E7EB",sw:"#E5E7EB"},{n:"motion/duration/slow",v:"600ms"},{n:"motion/easing/enter",v:"cubic-bezier(0,0,0.2,1)"}],
+    audit:()=>[{l:"aria-label",v:"'Loading' or descriptive label required",p:null},{l:"aria-busy",v:"aria-busy=true on parent container",p:null},{l:"Reduced motion",v:"opacity pulse instead of rotation",p:null}]
+  },
+  progress:{
+    label:"Progress Bar",group:"Feedback",
+    states:["default","indeterminate","complete"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{const h={sm:4,md:6}[sz]||6;return {type:"progress",height:h,value:s==="complete"?100:s==="indeterminate"?null:65,color:"#2563EB",track:"#E5E7EB",indeterminate:s==="indeterminate"};},
+    tokens:(s,sz)=>{const h={sm:4,md:6}[sz]||6;return [{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/border/tertiary",v:"#E5E7EB",sw:"#E5E7EB"},{n:"component/progress/height/"+sz,v:h+"px"},{n:"radius/full",v:"999px"}];},
+    audit:(s)=>[{l:"role=progressbar",v:"required",p:null},{l:"aria-valuenow",v:s==="indeterminate"?"not required for indeterminate":"0-100 value required",p:null},{l:"Text label",v:"'X% complete' or equivalent visible label",p:null}]
+  },
+  skeleton:{
+    label:"Skeleton",group:"Feedback",
+    states:["text","card","avatar","table-row"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>({type:"skeleton",variant:s,baseColor:"#F3F4F6",shimmerColor:"#E5E7EB"}),
+    tokens:()=>[{n:"color/background/subtle",v:"#F3F4F6",sw:"#F3F4F6"},{n:"color/border/tertiary",v:"#E5E7EB",sw:"#E5E7EB"},{n:"motion/duration/slow",v:"600ms"},{n:"radius/md",v:"8px"}],
+    audit:()=>[{l:"aria-busy=true",v:"on parent container while loading",p:null},{l:"Reduced motion",v:"static grey block — no animation",p:null},{l:"Matches layout",v:"skeleton shape must match content that replaces it",p:null}]
+  },
+  empty_state:{
+    label:"Empty State",group:"Feedback",
+    states:["no-data","no-results","error","first-use"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>{const map={"no-data":{icon:"📭",title:"No data yet",body:"Data will appear here once synced."},"no-results":{icon:"🔍",title:"No results found",body:"Try adjusting your filters or search term."},error:{icon:"⚠",title:"Failed to load",body:"Something went wrong. Please refresh."},"first-use":{icon:"✦",title:"Get started",body:"Create your first project to see it here."}};return {type:"empty_state",...(map[s]||map["no-data"]),state:s};},
+    tokens:()=>[{n:"color/text/primary",v:"#111827",sw:"#111827"},{n:"color/text/secondary",v:"#6B7280",sw:"#6B7280"},{n:"space/layout/section",v:"48px"},{n:"radius/lg",v:"12px"}],
+    audit:(s)=>[{l:"Action present",v:s==="no-data"||s==="first-use"?"CTA button required":s==="error"?"retry action required":"optional",p:null},{l:"Illustration alt",v:"alt='' if decorative, descriptive if informational",p:null}]
+  },
+  // ── NAVIGATION ───────────────────────────────────────────────
+  tabs:{
+    label:"Tabs",group:"Navigation",
+    states:["default","active","disabled","with-badge"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{const h={sm:36,md:40}[sz]||40;return {type:"tabs",height:h,activeTab:"Design",tabs:["Design","Preview","Code","Settings"],badgeTab:"Code",state:s};},
+    tokens:(s,sz)=>{const h={sm:36,md:40}[sz]||40;return [{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/border/default",v:"#E5E7EB",sw:"#E5E7EB"},{n:"component/tab/height/"+sz,v:h+"px"},{n:"motion/duration/fast",v:"200ms"}];},
+    audit:(s)=>[{l:"role=tablist",v:"required on container",p:null},{l:"aria-selected",v:"true/false on each tab",p:null},{l:"Keyboard nav",v:"arrow keys between tabs",p:null},{l:"Panel association",v:"aria-controls + id required",p:null}]
+  },
+  breadcrumb:{
+    label:"Breadcrumb",group:"Navigation",
+    states:["default","truncated"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s)=>({type:"breadcrumb",items:s==="truncated"?["Home","...","Settings","Profile"]:["Home","Workspace","Projects","Settings"],truncated:s==="truncated"}),
+    tokens:()=>[{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/text/secondary",v:"#6B7280",sw:"#6B7280"},{n:"color/text/tertiary",v:"#9CA3AF",sw:"#9CA3AF"},{n:"size/text/sm",v:"13px"}],
+    audit:()=>[{l:"aria-label=breadcrumb",v:"on nav element",p:null},{l:"Current page",v:"aria-current=page on last item",p:null},{l:"Truncation",v:"...must be accessible — show full path on expand",p:null}]
+  },
+  pagination:{
+    label:"Pagination",group:"Navigation",
+    states:["default","first","last","compact"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{const h={sm:32,md:36}[sz]||36;return {type:"pagination",height:h,currentPage:s==="first"?1:s==="last"?10:4,totalPages:10,compact:s==="compact"};},
+    tokens:(s,sz)=>{const h={sm:32,md:36}[sz]||36;return [{n:"component/button/height/"+sz,v:h+"px"},{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"},{n:"color/background/subtle",v:"#F3F4F6",sw:"#F3F4F6"},{n:"radius/md",v:"8px"}];},
+    audit:(s)=>[{l:"aria-label=pagination",v:"on nav element",p:null},{l:"Current page",v:"aria-current=page on active button",p:null},{l:"Prev/Next labels",v:"aria-label not just arrows",p:null},{l:"Touch targets",v:"min 36px per button",p:null}]
+  },
+  // ── LAYOUT ───────────────────────────────────────────────────
+  card:{
+    label:"Card",group:"Layout",
+    states:["default","hover","selected","loading"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{const p={sm:"12px",md:"16px",lg:"24px"}[sz]||"16px";return {type:"card",padding:p,border:s==="selected"?"1.5px solid #2563EB":"0.5px solid #E5E7EB",shadow:s==="hover"?"0 4px 12px rgba(0,0,0,0.08)":"none",bg:s==="loading"?"#F9FAFB":"#fff",state:s};},
+    tokens:(s,sz)=>{const p={sm:"12px",md:"16px",lg:"24px"}[sz]||"16px";return [{n:"color/background/primary",v:"#FFFFFF",sw:"#FFFFFF"},{n:"color/border/"+(s==="selected"?"focus":"default"),v:s==="selected"?"#2563EB":"#E5E7EB",sw:s==="selected"?"#2563EB":"#E5E7EB"},{n:"space/component/padding/"+sz,v:p},{n:"radius/lg",v:"12px"}];},
+    audit:(s)=>[{l:"Interactive card",v:s==="hover"||s==="selected"?"role=button or button wrapper required":"n/a",p:null},{l:"Focus ring",v:s==="hover"||s==="selected"?"required on keyboard focus":"n/a",p:null},{l:"Loading state",v:s==="loading"?"skeleton or spinner + aria-busy":null,p:null}]
+  },
+  modal:{
+    label:"Modal",group:"Layout",
+    states:["default","loading","danger"],
+    sizes:["sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{const w={sm:320,md:480,lg:640}[sz]||480;return {type:"modal",width:w,state:s,title:s==="danger"?"Delete project?":"Edit settings",body:s==="danger"?"This will permanently delete all data. This action cannot be undone.":"Update your workspace preferences below.",loading:s==="loading"};},
+    tokens:(s,sz)=>{const w={sm:320,md:480,lg:640}[sz]||480;return [{n:"color/background/primary",v:"#FFFFFF",sw:"#FFFFFF"},{n:"shadow/xl",v:"0 20px 48px rgba(0,0,0,0.2)"},{n:"radius/lg",v:"12px"},{n:"space/component/padding-lg",v:"24px"}];},
+    audit:(s)=>[{l:"role=dialog",v:"required",p:null},{l:"Focus trap",v:"Tab cycles within modal only",p:null},{l:"aria-labelledby",v:"points to modal title",p:null},{l:"Escape to close",v:"required",p:null},{l:"Return focus",v:"back to trigger on close",p:null}]
+  },
+  accordion:{
+    label:"Accordion",group:"Layout",
+    states:["collapsed","expanded","disabled"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>({type:"accordion",expanded:s==="expanded",disabled:s==="disabled",title:"Advanced settings",content:"Configure advanced workspace options including API rate limits, custom domains, and integration settings."}),
+    tokens:(s)=>[{n:"color/background/primary",v:"#FFFFFF",sw:"#FFFFFF"},{n:"color/border/default",v:"#E5E7EB",sw:"#E5E7EB"},{n:"motion/duration/medium",v:"350ms"},{n:"motion/easing/transition",v:"cubic-bezier(0.4,0,0.2,1)"}],
+    audit:(s)=>[{l:"role=button",v:"on trigger element",p:null},{l:"aria-expanded",v:s==="expanded"?"true":"false — correct",p:true},{l:"aria-controls",v:"points to panel id",p:null},{l:"Keyboard",v:"Enter/Space to toggle",p:null}]
+  },
+  // ── DATA ────────────────────────────────────────────────────
+  avatar:{
+    label:"Avatar",group:"Data",
+    states:["image","initials","icon","with-badge"],
+    sizes:["xs","sm","md","lg"],themes:["light","dark"],
+    render:(s,sz)=>{const size={xs:24,sm:32,md:40,lg:56}[sz]||40,fs={xs:9,sm:12,md:14,lg:18}[sz]||14;return {type:"avatar",size,fontSize:fs,state:s,initials:"AK",badgeColor:s==="with-badge"?"#22C55E":null};},
+    tokens:(s,sz)=>{const size={xs:24,sm:32,md:40,lg:56}[sz]||40;return [{n:"component/avatar/size/"+sz,v:size+"px"},{n:"color/background/info",v:"#DBEAFE",sw:"#DBEAFE"},{n:"color/text/info",v:"#1E40AF",sw:"#1E40AF"},{n:"radius/full",v:"999px"}];},
+    audit:(s)=>[{l:"alt text",v:s==="image"?"descriptive alt required":"aria-label on wrapper",p:null},{l:"Decorative",v:"alt='' if beside visible name",p:null},{l:"Badge contrast",v:s==="with-badge"?"badge must be 3:1 against avatar":null,p:null}]
+  },
+  metric_card:{
+    label:"Metric Card",group:"Data",
+    states:["default","positive","negative","loading"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>{const map={default:{val:"2,847",label:"Active users",trend:null},positive:{val:"24.3%",label:"Conversion rate",trend:"+4.2%",trendUp:true},negative:{val:"1,203",label:"Bounce rate",trend:"-8.1%",trendUp:false},loading:{val:"...",label:"Loading",trend:null}};return {type:"metric_card",...(map[s]||map.default),state:s};},
+    tokens:()=>[{n:"color/background/primary",v:"#FFFFFF",sw:"#FFFFFF"},{n:"color/text/primary",v:"#111827",sw:"#111827"},{n:"color/text/secondary",v:"#6B7280",sw:"#6B7280"},{n:"color/feedback/success",v:"#16A34A",sw:"#16A34A"},{n:"color/feedback/error",v:"#DC2626",sw:"#DC2626"}],
+    audit:(s)=>[{l:"Trend icon",v:s==="positive"||s==="negative"?"icon + colour + text required":"n/a",p:null},{l:"Colour alone",v:s==="positive"||s==="negative"?"arrow icon required alongside colour":"n/a",p:null},{l:"Loading",v:s==="loading"?"aria-busy=true":null,p:null}]
+  },
+  list_item:{
+    label:"List Item",group:"Data",
+    states:["default","hover","selected","disabled"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{const h={sm:40,md:48}[sz]||48;return {type:"list_item",height:h,state:s,label:"Design System Guidelines",sublabel:"Updated 2 hours ago",selected:s==="selected",disabled:s==="disabled"};},
+    tokens:(s,sz)=>{const h={sm:40,md:48}[sz]||48;return [{n:"color/background/"+(s==="selected"?"info/subtle":"primary"),v:s==="selected"?"#EFF6FF":"#FFFFFF",sw:s==="selected"?"#EFF6FF":"#FFFFFF"},{n:"component/list/item/height/"+sz,v:h+"px"},{n:"color/interactive/primary",v:"#2563EB",sw:"#2563EB"}];},
+    audit:(s)=>[{l:"Interactive",v:"role=option or role=listitem",p:null},{l:"Selected state",v:s==="selected"?"aria-selected=true":null,p:null},{l:"Touch target",v:"min 40px height",p:null}]
+  },
+  table_row:{
+    label:"Table Row",group:"Data",
+    states:["default","hover","selected","loading"],
+    sizes:["md"],themes:["light","dark"],
+    render:(s)=>({type:"table_row",state:s,cols:["Aadhithiyan","Senior UX Strategist","Design","Active"],selected:s==="selected",loading:s==="loading"}),
+    tokens:(s)=>[{n:"color/background/"+(s==="selected"?"info/subtle":"primary"),v:s==="selected"?"#EFF6FF":"#FFFFFF",sw:s==="selected"?"#EFF6FF":"#FFFFFF"},{n:"color/border/tertiary",v:"#F3F4F6",sw:"#F3F4F6"},{n:"space/component/padding-md",v:"12px"}],
+    audit:(s)=>[{l:"role=row",v:"required on tr",p:null},{l:"role=cell",v:"role=rowheader on th",p:null},{l:"Sortable",v:"aria-sort on sortable column headers",p:null},{l:"Selectable",v:s==="selected"?"aria-selected=true on row":null,p:null}]
+  },
+  // ── OVERLAY ──────────────────────────────────────────────────
+  menu_item:{
+    label:"Menu Item",group:"Overlay",
+    states:["default","hover","active","disabled","destructive"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s,sz)=>{const h={sm:32,md:36}[sz]||36;const map={default:{bg:"transparent",col:"#111827"},hover:{bg:"#F3F4F6",col:"#111827"},active:{bg:"#EFF6FF",col:"#1D4ED8"},disabled:{bg:"transparent",col:"#9CA3AF"},destructive:{bg:"transparent",col:"#DC2626"}};const st=map[s]||map.default;return {type:"menu_item",height:h,state:s,...st,label:s==="destructive"?"Delete project":"Edit settings",disabled:s==="disabled"};},
+    tokens:(s,sz)=>{const h={sm:32,md:36}[sz]||36;return [{n:"component/menu/item/height/"+sz,v:h+"px"},{n:"color/background/subtle",v:"#F3F4F6",sw:"#F3F4F6"},{n:"color/feedback/error",v:s==="destructive"?"#DC2626":"n/a",sw:s==="destructive"?"#DC2626":"n/a"},{n:"radius/md",v:"6px"}];},
+    audit:(s)=>[{l:"role=menuitem",v:"required",p:null},{l:"Destructive",v:s==="destructive"?"colour + icon required — not colour alone":null,p:null},{l:"Keyboard",v:"arrow keys to navigate, Enter to select",p:null},{l:"Disabled",v:s==="disabled"?"aria-disabled=true, still focusable":null,p:null}]
+  },
+  tooltip:{
+    label:"Tooltip",group:"Overlay",
+    states:["top","bottom","left","right"],
+    sizes:["sm","md"],themes:["light","dark"],
+    render:(s)=>({type:"tooltip",position:s,label:"Keyboard shortcut: Cmd+S",visible:true}),
+    tokens:()=>[{n:"color/background/inverse",v:"#1E293B",sw:"#1E293B"},{n:"color/text/inverse",v:"#F8FAFC",sw:"#F8FAFC"},{n:"radius/sm",v:"4px"},{n:"space/component/padding-sm",v:"8px"},{n:"shadow/md",v:"0 4px 12px rgba(0,0,0,0.15)"}],
+    audit:()=>[{l:"role=tooltip",v:"required",p:null},{l:"aria-describedby",v:"trigger references tooltip id",p:null},{l:"Not mouse-only",v:"visible on keyboard focus too",p:null},{l:"Not sole label",v:"tooltip supplements, not replaces visible label",p:null}]
+  },
+};
+
+
+const FIGMA_DEMO_COMPONENTS = [
+  {name:"Button/Primary",type:"button",variants:4,states:["Default","Hover","Focus","Disabled"],sizes:["SM","MD","LG"],tokens:["color/interactive/primary","color/text/inverse","component/button/height/md","radius/md"],issues:0},
+  {name:"Input/Text",type:"input",variants:4,states:["Default","Focus","Error","Disabled"],sizes:["SM","MD","LG"],tokens:["color/background/default","color/border/default","color/feedback/error","component/input/height/md"],issues:1,issueDetail:"1 hardcoded fill detected: #F5F5F5 — not in token registry. Nearest: color/background/subtle (#F8F9FB)"},
+  {name:"Badge/Status",type:"badge",variants:4,states:["Neutral","Success","Warning","Error"],sizes:["SM","MD"],tokens:["color/feedback/success/subtle","color/feedback/error/subtle","component/badge/radius","size/text/xs"],issues:0},
+  {name:"Modal/Dialog",type:"modal",variants:3,states:["Default","With Overlay","Loading"],sizes:["SM","MD","LG"],tokens:["color/background/primary","color/border/default","shadow/lg","radius/lg"],issues:2,issueDetail:"2 issues: Focus trap not implemented in handoff notes. Close button below 24px minimum touch target."},
+  {name:"Navigation/Top",type:"nav",variants:2,states:["Default","Scrolled"],sizes:["Desktop","Mobile"],tokens:["color/background/primary","color/border/default","color/text/primary","space/layout/section"],issues:0},
+  {name:"Card/Content",type:"card",variants:3,states:["Default","Hover","Selected"],sizes:["SM","MD","LG"],tokens:["color/background/primary","color/border/default","radius/lg","shadow/sm"],issues:1,issueDetail:"1 hardcoded shadow: box-shadow: 0 2px 8px rgba(0,0,0,0.1) — use shadow/sm token instead"}
+];
+
+
+// ─── DETAIL LEVELS ───────────────────────────────────────────────────────────
+const DETAIL_LEVELS=[
+  {id:"concise",label:"Concise",desc:"Key decisions only. Fast to read."},
+  {id:"detailed",label:"Detailed",desc:"Full spec with rationale."},
+  {id:"comprehensive",label:"Comprehensive",desc:"Every edge case covered."}
+];
+
+// ─── DESIGN THINKING STAGE TASKS ─────────────────────────────────────────────
+const DT_STAGES={
+  discover:{
+    color:"#7C3AED",bg:"#F5F3FF",
+    tasks:[
+      {id:"user-interviews",label:"User Interviews",desc:"Understand what people actually need",prompt:"User research discussion guide for interviews about ",tool:"brief",creativity:"precise",depth:"detailed",ctaOrder:["content","prompt","design"]},
+      {id:"contextual-inquiry",label:"Contextual Inquiry",desc:"Observe people in their environment",prompt:"Contextual inquiry study plan to observe users doing ",tool:"brief",creativity:"considered",depth:"detailed",ctaOrder:["content","prompt","design"]},
+      {id:"secondary-research",label:"Secondary Research",desc:"Review existing knowledge and benchmarks",prompt:"Secondary research and competitive analysis for ",tool:"chatgpt",creativity:"precise",depth:"comprehensive",ctaOrder:["content","prompt","design"]},
+      {id:"stakeholder-alignment",label:"Stakeholder Alignment",desc:"Extract goals and constraints from the team",prompt:"Stakeholder alignment questions for a project about ",tool:"brief",creativity:"precise",depth:"concise",ctaOrder:["content","prompt","design"]}
+    ]
+  },
+  define:{
+    color:"#DC2626",bg:"#FEF2F2",
+    tasks:[
+      {id:"persona",label:"Persona Development",desc:"Build a shared picture of who you are designing for",prompt:"Behavioural user persona for someone who ",tool:"brief",creativity:"considered",depth:"detailed",ctaOrder:["content","design","prompt"]},
+      {id:"journey-map",label:"Journey Map",desc:"Map emotions and friction across the experience",prompt:"Customer journey map for a user going through ",tool:"brief",creativity:"considered",depth:"detailed",ctaOrder:["content","design","prompt"]},
+      {id:"hmw",label:"Problem Framing (HMW)",desc:"Turn research into actionable design questions",prompt:"How might we statements and problem framing for ",tool:"brief",creativity:"expressive",depth:"concise",ctaOrder:["content","prompt","design"]},
+      {id:"research-synthesis",label:"Research Synthesis",desc:"Group findings into themes and opportunities",prompt:"Affinity map and research synthesis for findings about ",tool:"notebooklm",creativity:"precise",depth:"comprehensive",ctaOrder:["content","prompt","design"]}
+    ]
+  },
+  ideate:{
+    color:"#D97706",bg:"#FFFBEB",
+    tasks:[
+      {id:"concept-brief",label:"Concept Brief",desc:"Define the creative direction before designing",prompt:"Design concept brief for ",tool:"brief",creativity:"expressive",depth:"detailed",ctaOrder:["prompt","content","design"]},
+      {id:"task-flows",label:"Task and Decision Flows",desc:"Map the logic before any visual work",prompt:"Task flow and decision tree for ",tool:"brief",creativity:"precise",depth:"detailed",ctaOrder:["content","design","prompt"]},
+      {id:"design-principles",label:"Design Principles",desc:"Set the rules that guide every decision",prompt:"Design principles for a product that ",tool:"chatgpt",creativity:"expressive",depth:"concise",ctaOrder:["content","prompt","design"]},
+      {id:"ideation-workshop",label:"Workshop Facilitation",desc:"Structure a team ideation session",prompt:"Workshop facilitation guide for ideating around ",tool:"brief",creativity:"considered",depth:"detailed",ctaOrder:["content","prompt","design"]}
+    ]
+  },
+  prototype:{
+    color:"#2563EB",bg:"#EFF6FF",
+    tasks:[
+      {id:"component-spec",label:"Component Spec",desc:"Full blueprint for a design system component",prompt:"Design system component specification for a ",tool:"storybook",creativity:"precise",depth:"comprehensive",ctaOrder:["design","prompt","content"]},
+      {id:"screen-spec",label:"Screen Specification",desc:"Every state, edge case, and interaction defined",prompt:"Screen specification for a ",tool:"figma",creativity:"considered",depth:"comprehensive",ctaOrder:["design","prompt","content"]},
+      {id:"design-brief",label:"Design Brief",desc:"Governing brief to hand off to any design tool",prompt:"Governed design brief for ",tool:"brief",creativity:"considered",depth:"detailed",ctaOrder:["prompt","design","content"]},
+      {id:"token-spec",label:"Token Specification",desc:"Design token documentation for engineering",prompt:"Design token specification for ",tool:"styledict",creativity:"precise",depth:"comprehensive",ctaOrder:["design","prompt","content"]}
+    ]
+  },
+  test:{
+    color:"#0F766E",bg:"#F0FDFA",
+    tasks:[
+      {id:"usability-script",label:"Usability Test Script",desc:"Task-based test for evaluating a prototype",prompt:"Usability test script and tasks for validating ",tool:"brief",creativity:"precise",depth:"detailed",ctaOrder:["content","prompt","design"]},
+      {id:"survey",label:"Survey Design",desc:"Scalable feedback at NPS or CSAT level",prompt:"Survey design with NPS and satisfaction questions for ",tool:"brief",creativity:"precise",depth:"detailed",ctaOrder:["content","prompt","design"]},
+      {id:"heuristic",label:"Heuristic Audit",desc:"Evaluate an existing interface against principles",prompt:"Heuristic evaluation and audit of a ",tool:"brief",creativity:"considered",depth:"comprehensive",ctaOrder:["content","design","prompt"]},
+      {id:"analytics-brief",label:"Analytics Framework",desc:"Define what to measure post-launch",prompt:"Analytics and measurement framework for tracking ",tool:"chatgpt",creativity:"precise",depth:"detailed",ctaOrder:["content","prompt","design"]}
+    ]
+  }
+};
+
+</script>
+<script type="text/babel">
+
+
+const {useState,useEffect,useRef,useCallback} = React;
+
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function classifyIntent(t){
+  const lo=t.toLowerCase();
+  let best="INTENT_CONSUMPTION",score=0;
+  for(const[k,kws] of Object.entries(INTENT_KW)){
+    const s=kws.filter(w=>lo.includes(w)).length;
+    if(s>score){score=s;best=k;}
+  }
+  return best;
+}
+
+function getPromptType(intent,tool){
+  const toolObj=TOOLS.find(t=>t.id===tool);
+  if(!toolObj) return PROMPT_TYPES[0];
+  const g=toolObj.group;
+  if(g==="image"||g==="motion") return PROMPT_TYPES[4]; // generative
+  if(g==="code") return PROMPT_TYPES[5]; // structural
+  if(g==="elearning"||g==="designsystem") return PROMPT_TYPES[1]; // instructional
+  if(intent==="INTENT_UX_RESEARCH"||intent==="INTENT_DECISION_SUPPORT") return PROMPT_TYPES[3]; // evaluative
+  if(intent==="INTENT_DATA_ENTRY"||intent==="INTENT_RECOVERY") return PROMPT_TYPES[2]; // constraint
+  if(g==="design"&&tool!=="brief") return PROMPT_TYPES[1]; // instructional
+  return PROMPT_TYPES[0]; // descriptive
+}
+
+function buildSystemPrompt(intent,tool,input,resources,mode,creativity){
+  const a=ASSEMBLIES[intent]||ASSEMBLIES.INTENT_CONSUMPTION;
+  const toolObj=TOOLS.find(t=>t.id===tool)||TOOLS[0];
+  const toolSpec=TOOL_SPECS[tool]||TOOL_SPECS.brief;
+  const pt=getPromptType(intent,tool);
+  const isElearning=["storyline","rise","captivate","h5p","ispring"].includes(tool)||intent==="INTENT_INSTRUCTIONAL_DESIGN";
+  const isMotion=["runway","sora","kling","luma"].includes(tool)||intent==="INTENT_MOTION_VIDEO";
+  const isDS=["storybook","styledict","tokensstudio","zeroheight"].includes(tool)||intent==="INTENT_DESIGN_SYSTEM";
+
+  const creativityMap={precise:"Use the most established, proven patterns. Stay close to the request. No unexpected elements.",considered:"Use proven patterns as a starting point, then elevate with considered detail. Introduce one or two unexpected but justified decisions.",expressive:"Push the creative envelope within the governed boundaries. Unexpected, distinctive, and memorable — while every governance rule still applies."};
+
+  const resourceCtx=resources.length>0?`\nGROUNDING CONTEXT (use these research insights to inform the output):\n${resources.map((r,i)=>"[Source "+(i+1)+": "+r.title+"]\n"+r.content).join("\n\n")}`:"";
+
+  const lrnRules=isElearning?`\n\nINSTRUCTIONAL DESIGN RULES (non-negotiable):\n${LRN_RULES.map((r,i)=>(i+1)+". "+r).join("\n")}`:"";
+
+  const tokenSystem=!isMotion?`\nDESIGN TOKEN SYSTEM:\nColours: color/interactive/primary=#2563EB · color/background/default=#FFFFFF · color/text/primary=#111827 · color/feedback/success=#16A34A · color/feedback/error=#DC2626 · color/feedback/warning=#D97706\nMotion: motion/easing/enter=cubic-bezier(0,0,0.2,1) · motion/duration/fast=200ms · motion/duration/medium=350ms\nSpacing: space/component/padding-md=12px · space/layout/gap=24px\nRadius: radius/md=8px · radius/lg=12px`:"";
+
+  const contentMode=mode==="content"?`\n\nOUTPUT MODE: GENERATE ACTUAL CONTENT. Do not generate a prompt for another tool. Generate the complete, ready-to-use artefact directly. Real content, real copy, real data — no placeholders.`:`\n\nOUTPUT MODE: GENERATE GOVERNED PROMPT. Produce a complete, ready-to-paste prompt for ${toolObj.label} that produces a publication-quality output when pasted directly into that tool.`;
+
+  return `You are an elite context engineering agent — the governed intelligence layer of Kalai Pezhai, a design intelligence platform built on the v7 brain dataset (4,931 rows, 633 knowledge sources, 373 boundaries, 171 design tokens).
+
+REQUEST: "${input}"
+TOOL: ${toolObj.label}
+INTENT: ${INTENT_LABELS[intent]||"Design"}
+PROMPT TYPE: ${pt.label} (${pt.accuracy}% accuracy) — ${pt.desc}
+CREATIVE FREEDOM: ${creativity} — ${creativityMap[creativity]}
+${contentMode}
+
+GOVERNANCE ASSEMBLY: ${a.id} (${INTENT_LABELS[intent]})
+Knowledge sources: ${a.ks}
+Instructions: ${a.instructions}
+Hard boundaries: ${a.bounds}
+Zone: ${a.zone} | Boundary prefix: ${a.boundary}
+
+L7 VISUAL RULES (non-negotiable — apply to every output):
+${L7_RULES.map((r,i)=>(i+1)+". "+r).join("\n")}
+${lrnRules}${tokenSystem}${resourceCtx}
+
+HOW ${toolObj.label.toUpperCase()} THINKS:
+${toolSpec.how}
+
+PROMPT STYLE FOR ${toolObj.label.toUpperCase()}:
+${toolSpec.style}
+
+OUTPUT FORMAT:
+${toolSpec.format}
+
+QUALITY STANDARDS:
+1. Speak ${toolObj.label}'s native language — not a generic document format.
+2. Be specific to "${input}" — every detail derived from this exact request.
+3. Fill every gap intelligently — make expert design decisions and state them.
+4. No placeholder text — write actual copy, CTA labels, error messages.
+5. Reference design tokens by name, never hardcoded hex values.
+
+Generate the complete ${mode==="content"?"artefact":"governed prompt"} for: "${input}"`;
+}
+
+function buildVisionPrompt(toolId){
+  const toolObj=TOOLS.find(t=>t.id===toolId)||{label:"Figma"};
+  return `You are a visual design systems auditor and governed prompt reverse-engineer. Analyse this uploaded design image and produce two outputs:
+
+PART 1 — VISUAL STYLE EXTRACTION:
+Extract every visual design decision visible in the image:
+- Color palette: exact hex values for every colour present
+- Typography: font weight estimates, size hierarchy, line-height
+- Spacing: estimate padding and gap values in px
+- Border radius: sm/md/lg estimation
+- Shadow and elevation: none/subtle/medium/strong
+- Layout structure: describe the grid or flex layout
+- Component patterns: list every UI component present
+
+PART 2 — GOVERNED REVERSE PROMPT:
+Using the extracted visual data, produce a complete governed prompt for ${toolObj.label} that would recreate this design's visual style. Map every extracted value to the nearest Kalai Pezhai design token from this registry:
+- color/interactive/primary = #2563EB
+- color/background/default = #FFFFFF
+- color/background/subtle = #F8F9FB
+- color/text/primary = #111827
+- color/text/secondary = #4B5563
+- color/feedback/success = #16A34A
+- color/feedback/error = #DC2626
+- radius/sm = 4px, radius/md = 8px, radius/lg = 12px
+- space/component/padding-md = 12px, space/layout/gap = 24px
+
+PART 3 — GOVERNANCE AUDIT:
+Flag any visual decisions that violate Kalai Pezhai governance rules:
+- Contrast ratio failures (WCAG 1.4.3 — 4.5:1 for normal text, 3:1 for UI components)
+- Touch targets below 24px (WCAG 2.5.8)
+- Hardcoded values not matching any token
+- Missing focus ring indicators
+- Colour used as sole signal without text or icon
+
+Format clearly with the three parts labelled.`;
+}
+
+// ─── COMPONENTS ──────────────────────────────────────────────────────────────
+
+const S={
+  app:{display:"flex",flexDirection:"column",minHeight:"100vh",fontFamily:"Inter,system-ui,sans-serif"},
+  header:{background:"#0F172A",borderBottom:"1px solid #1E293B",position:"sticky",top:0,zIndex:100},
+  headerInner:{maxWidth:1280,margin:"0 auto",padding:"0 24px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between"},
+  logo:{display:"flex",alignItems:"center",gap:10},
+  logoMark:{width:34,height:34,borderRadius:8,background:"#2563EB",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:15,letterSpacing:"-0.02em"},
+  logoText:{color:"#F8FAFC",fontSize:15,fontWeight:600,letterSpacing:"-0.01em"},
+  logoSub:{color:"#64748B",fontSize:10,fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase"},
+  nav:{display:"flex",alignItems:"center",gap:2},
+  main:{flex:1,maxWidth:1280,margin:"0 auto",width:"100%",padding:"28px 24px 60px"},
+  footer:{background:"#0F172A",borderTop:"1px solid #1E293B",padding:"16px 24px"},
+  footerInner:{maxWidth:1280,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"center"},
+};
+
+function NavBtn({id,label,active,onClick}){
+  return <button onClick={onClick} style={{padding:"6px 14px",borderRadius:6,border:"none",background:active?"#1E293B":"transparent",color:active?"#F8FAFC":"#94A3B8",fontSize:12,fontWeight:active?600:400,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.12s"}}>{label}</button>;
+}
+
+function Tag({text,color,bg}){
+  return <span style={{display:"inline-block",fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:999,background:bg||"#F3F4F6",color:color||"#374151",letterSpacing:"0.04em"}}>{text}</span>;
+}
+
+function Card({children,style={}}){
+  return <div style={{background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:12,padding:"18px 20px",...style}}>{children}</div>;
+}
+
+function SectionTitle({label,desc}){
+  return <div style={{marginBottom:20}}>
+    <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:4}}>{label}</div>
+    {desc&&<div style={{fontSize:13,color:"#6B7280",lineHeight:1.6}}>{desc}</div>}
+  </div>;
+}
+
+function ProgressBar({pct,color}){
+  return <div style={{height:4,background:"#F3F4F6",borderRadius:999,overflow:"hidden"}}>
+    <div style={{width:pct+"%",height:"100%",background:color,borderRadius:999,transition:"width 0.3s"}}/>
+  </div>;
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+
+function DashboardTab(){
+  const [activeIntent,setActiveIntent]=useState(null);
+  const intents=Object.entries(ASSEMBLIES);
+  const domainColors={"Motion":"#D97706","Learning":"#0369A1","Design Systems":"#7C3AED","Accessibility":"#0F766E","Experience":"#2563EB","Behavior":"#DC2626","System":"#374151"};
+
+  return <div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:10,marginBottom:24}}>
+      {[["633","Design principles"],["30","Tools supported"],["13","Design domains"],["171","Token definitions"],["50","UI components"],["48","Governance rules"]].map(([n,l])=>
+        <div key={l} style={{background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:10,padding:"14px 16px",textAlign:"center"}}>
+          <div style={{fontSize:24,fontWeight:700,color:"#0F172A",letterSpacing:"-0.03em"}}>{n}</div>
+          <div style={{fontSize:11,color:"#9CA3AF",marginTop:2}}>{l}</div>
+        </div>
+      )}
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:16,marginBottom:16}}>
+      <Card>
+        <SectionTitle label="Governance Assemblies" desc="The 13 design domains the tool understands. Click any to see what rules apply."/>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {intents.map(([key,asm])=>{
+            const isActive=activeIntent===key;
+            const zoneLabel=asm.zone.includes("COHERENT")?"Rules applied strictly":"Flexible and exploratory";
+            return <div key={key} onClick={()=>setActiveIntent(isActive?null:key)} style={{border:"0.5px solid "+(isActive?"#2563EB":"#E5E7EB"),borderLeft:"3px solid "+(isActive?"#2563EB":"#E5E7EB"),borderRadius:"0 8px 8px 0",padding:"10px 12px",cursor:"pointer",background:isActive?"#F0F9FF":"#fff",transition:"all 0.12s"}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:3}}>{INTENT_LABELS[key]}</div>
+              <div style={{fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>{zoneLabel}</div>
+            </div>;
+          })}
+        </div>
+        {activeIntent&&<div style={{marginTop:12,padding:"12px 14px",background:"#F8F9FB",borderRadius:8,border:"0.5px solid #E5E7EB"}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#374151",marginBottom:6}}>Instructions</div>
+          <div style={{fontSize:12,color:"#6B7280",lineHeight:1.65}}>{ASSEMBLIES[activeIntent].instructions}</div>
+          <div style={{fontSize:11,fontWeight:600,color:"#DC2626",marginTop:8,marginBottom:4}}>Hard boundaries</div>
+          <div style={{fontSize:12,color:"#6B7280",lineHeight:1.65}}>{ASSEMBLIES[activeIntent].bounds}</div>
+        </div>}
+      </Card>
+
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Card>
+          <SectionTitle label="How outputs are shaped"/>
+          {PROMPT_TYPES.map(pt=><div key={pt.id} style={{marginBottom:10}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{width:18,height:18,borderRadius:4,background:pt.bg,color:pt.color,fontSize:9,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{pt.icon}</span>
+                <span style={{fontSize:12,fontWeight:500,color:"#0F172A"}}>{pt.label}</span>
+              </div>
+              <span style={{fontSize:12,fontWeight:600,color:pt.color}}>{pt.accuracy}%</span>
+            </div>
+            <ProgressBar pct={pt.accuracy} color={pt.color}/>
+          </div>)}
+        </Card>
+        <Card>
+          <SectionTitle label="Design Rules"/>
+          <div style={{display:"flex",flexDirection:"column",gap:5,maxHeight:240,overflowY:"auto"}}>
+            {L7_RULES.map((r,i)=><div key={i} style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+              <span style={{fontSize:10,fontWeight:700,color:"#2563EB",minWidth:18,paddingTop:1,fontFamily:"JetBrains Mono,monospace"}}>{String(i+1).padStart(2,"0")}</span>
+              <span style={{fontSize:11,color:"#6B7280",lineHeight:1.55}}>{r}</span>
+            </div>)}
+          </div>
+        </Card>
+      </div>
+    </div>
+
+
+  </div>;
+}
+
+function GenerateTab(){
+  const [chip,setChip]=useState("prompt");
+  const [input,setInput]=useState("");
+  const [tool,setTool]=useState("brief");
+  const [creativity,setCreativity]=useState("considered");
+  const [depth,setDepth]=useState("detailed");
+  const [activeTask,setActiveTask]=useState(null);
+  const [running,setRunning]=useState(false);
+  const [output,setOutput]=useState("");
+  const [cl,setCl]=useState(null);
+  const [viewMode,setViewMode]=useState("raw");
+  const [copied,setCopied]=useState(false);
+  const [resources]=useState(()=>{try{const d=localStorage.getItem("kp_resources");return d?JSON.parse(d):[]}catch{return []}});
+  const [canvasBlocks,setCanvasBlocks]=useState([]);
+  const [editingId,setEditingId]=useState(null);
+
+  const chips=[
+    {id:"prompt",label:"Prompt",color:"#0F172A",bg:"#F1F5F9"},
+    {id:"discover",label:"Discover",color:"#7C3AED",bg:"#F5F3FF"},
+    {id:"define",label:"Define",color:"#DC2626",bg:"#FEF2F2"},
+    {id:"ideate",label:"Ideate",color:"#D97706",bg:"#FFFBEB"},
+    {id:"prototype",label:"Prototype",color:"#2563EB",bg:"#EFF6FF"},
+    {id:"test",label:"Test",color:"#0F766E",bg:"#F0FDFA"}
+  ];
+
+  const isPromptMode=chip==="prompt";
+  const stageData=!isPromptMode?DT_STAGES[chip]:null;
+
+  // Dynamic CTA config per chip
+  const ctaConfig={
+    prompt:[
+      {id:"prompt",label:"Generate Prompt",primary:true,color:"#0F172A"},
+      {id:"design",label:"Generate Design",primary:false,color:"#2563EB"},
+      {id:"content",label:"Generate Content",primary:false,color:"#6B7280"}
+    ],
+    discover:[
+      {id:"content",label:"Generate Content",primary:true,color:"#7C3AED"},
+      {id:"prompt",label:"Generate Prompt",primary:false,color:"#6B7280"},
+      {id:"design",label:"Generate Design",primary:false,color:"#6B7280"}
+    ],
+    define:[
+      {id:"content",label:"Generate Content",primary:true,color:"#DC2626"},
+      {id:"design",label:"Generate Design",primary:false,color:"#2563EB"},
+      {id:"prompt",label:"Generate Prompt",primary:false,color:"#6B7280"}
+    ],
+    ideate:[
+      {id:"prompt",label:"Generate Prompt",primary:true,color:"#D97706"},
+      {id:"content",label:"Generate Content",primary:false,color:"#6B7280"},
+      {id:"design",label:"Generate Design",primary:false,color:"#6B7280"}
+    ],
+    prototype:[
+      {id:"design",label:"Generate Design",primary:true,color:"#2563EB"},
+      {id:"prompt",label:"Generate Prompt",primary:false,color:"#6B7280"},
+      {id:"content",label:"Generate Content",primary:false,color:"#6B7280"}
+    ],
+    test:[
+      {id:"content",label:"Generate Content",primary:true,color:"#0F766E"},
+      {id:"prompt",label:"Generate Prompt",primary:false,color:"#6B7280"},
+      {id:"design",label:"Generate Design",primary:false,color:"#6B7280"}
+    ]
+  };
+
+  // If a task is active, use its CTA order
+  const activeCTAs=activeTask
+    ?activeTask.ctaOrder.map((id,i)=>({id,label:id==="content"?"Generate Content":id==="design"?"Generate Design":"Generate Prompt",primary:i===0,color:i===0?(stageData?stageData.color:"#0F172A"):"#6B7280"}))
+    :ctaConfig[chip];
+
+  const ctaModeMap={prompt:"spec",design:"spec",content:"content"};
+
+  function selectTask(task){
+    setActiveTask(task);
+    setInput(task.prompt);
+    setTool(task.tool);
+    setCreativity(task.creativity);
+    setDepth(task.depth);
+  }
+
+  function switchChip(id){
+    setChip(id);
+    setActiveTask(null);
+    if(id==="prompt") setInput("");
+  }
+
+  async function generate(ctaId){
+    if(!input.trim()||running) return;
+    setRunning(true);
+    setOutput("");
+    setCanvasBlocks([]);
+    const mode=ctaModeMap[ctaId]||"spec";
+    const intent=classifyIntent(input);
+    const pt=getPromptType(intent,tool);
+    setCl({intent,pt,tool,mode,ctaId});
+    const activeResources=resources.filter(r=>r.active);
+    const depthInstr=depth==="concise"?"Be concise — key decisions only, no padding.":depth==="comprehensive"?"Be comprehensive — cover every edge case, state, and decision.":"Be detailed but efficient — full spec without unnecessary repetition.";
+    const sys=buildSystemPrompt(intent,tool,input,activeResources,mode,creativity)+" "+depthInstr;
+    try{
+      const resp=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          system:sys,
+          messages:[{role:"user",content:`Generate the ${mode==="content"?"complete artefact":"governed prompt"} for: "${input}"`}]
+        })
+      });
+      const data=await resp.json();
+      const text=data.content?.[0]?.text||"";
+      setOutput(text);
+      const sections=text.split(/\n(?=[A-Z][A-Z\s&]+:)/).filter(s=>s.trim());
+      const blocks=sections.slice(0,8).map((s,i)=>{
+        const lines=s.split("\n");
+        const title=lines[0].replace(/:/,"").trim();
+        const content=lines.slice(1).join("\n").trim();
+        const colors=["#2563EB","#7C3AED","#0F766E","#D97706","#DC2626","#0369A1","#15803D","#374151"];
+        return {id:"b"+i,title,content,color:colors[i%8]};
+      });
+      setCanvasBlocks(blocks);
+      setViewMode("canvas");
+      try{
+        const hist=JSON.parse(localStorage.getItem("kp_history")||"[]");
+        hist.unshift({id:Date.now(),input,tool,intent,output:text,ts:new Date().toLocaleString()});
+        localStorage.setItem("kp_history",JSON.stringify(hist.slice(0,20)));
+      }catch(e){}
+    }catch(e){
+      setOutput("Generation error: "+e.message);
+    }
+    setRunning(false);
+  }
+
+  function moveBlock(i,dir){const b=[...canvasBlocks];const ti=i+dir;if(ti<0||ti>=b.length)return;[b[i],b[ti]]=[b[ti],b[i]];setCanvasBlocks(b);}
+  function deleteBlock(id){setCanvasBlocks(p=>p.filter(b=>b.id!==id));}
+  function updateBlock(id,content){setCanvasBlocks(p=>p.map(b=>b.id===id?{...b,content}:b));}
+
+  const activeChip=chips.find(c=>c.id===chip);
+
+  return <div style={{maxWidth:960,margin:"0 auto"}}>
+
+    {/* ── SMART SEARCH AREA ── */}
+    <div style={{background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:16,padding:"24px 24px 20px",marginBottom:16,boxShadow:"0 2px 12px rgba(0,0,0,0.05)"}}>
+
+      {/* Six chips */}
+      <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {chips.map(c=><button key={c.id} onClick={()=>switchChip(c.id)} style={{padding:"6px 14px",borderRadius:999,border:"0.5px solid "+(chip===c.id?c.color:"#E5E7EB"),background:chip===c.id?c.bg:"#fff",color:chip===c.id?c.color:"#9CA3AF",fontSize:12,fontWeight:chip===c.id?600:400,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.12s"}}>{c.label}</button>)}
+      </div>
+
+      {/* Search box */}
+      <div style={{position:"relative",marginBottom:16}}>
+        <textarea
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          disabled={running}
+          placeholder={isPromptMode?"Describe what you want to design, build, or generate...":"Describe your "+chip+" task, or pick one below..."}
+          style={{width:"100%",minHeight:72,padding:"14px 16px",border:"1.5px solid "+(input.trim()?(activeChip?activeChip.color:"#2563EB"):"#E5E7EB"),borderRadius:10,fontSize:14,fontFamily:"Inter,system-ui,sans-serif",lineHeight:1.6,resize:"none",outline:"none",color:"#111827",transition:"border 0.15s",boxSizing:"border-box"}}
+          onKeyDown={e=>{if(e.key==="Enter"&&(e.metaKey||e.ctrlKey)){e.preventDefault();generate(activeCTAs[0].id);}}}
+        />
+        {input.trim()&&<div style={{position:"absolute",bottom:10,right:12,fontSize:10,color:"#9CA3AF"}}>⌘↵ to generate</div>}
+      </div>
+
+      {/* Tool selector — only in prompt mode */}
+      {isPromptMode&&<div style={{marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:8}}>Target tool</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {TOOLS.map(t=>{
+            const gc={strategy:"#374151",design:"#2563EB",ai:"#7C3AED",code:"#15803D",image:"#D97706",motion:"#DC2626",elearning:"#0369A1",designsystem:"#7C3AED"};
+            const c=gc[t.group]||"#374151";
+            return <button key={t.id} onClick={()=>setTool(t.id)} style={{fontSize:11,padding:"4px 10px",borderRadius:5,border:"0.5px solid "+(tool===t.id?c:"#E5E7EB"),background:tool===t.id?(c+"18"):"#fff",color:tool===t.id?c:"#6B7280",cursor:"pointer",fontWeight:tool===t.id?600:400,fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.1s"}}>{t.label}</button>;
+          })}
+        </div>
+      </div>}
+
+      {/* Controls row: creativity + depth */}
+      <div style={{display:"flex",gap:12,marginBottom:18,flexWrap:"wrap"}}>
+        <div style={{flex:1,minWidth:180}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:6}}>Creative freedom</div>
+          <div style={{display:"flex",gap:4}}>
+            {[["precise","Precise"],["considered","Considered"],["expressive","Expressive"]].map(([v,l])=><button key={v} onClick={()=>setCreativity(v)} style={{flex:1,padding:"6px 4px",borderRadius:6,border:"0.5px solid "+(creativity===v?"#7C3AED":"#E5E7EB"),background:creativity===v?"#7C3AED":"#fff",color:creativity===v?"#fff":"#6B7280",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.1s"}}>{l}</button>)}
+          </div>
+        </div>
+        <div style={{flex:1,minWidth:180}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:6}}>Prompt depth</div>
+          <div style={{display:"flex",gap:4}}>
+            {DETAIL_LEVELS.map(d=><button key={d.id} onClick={()=>setDepth(d.id)} style={{flex:1,padding:"6px 4px",borderRadius:6,border:"0.5px solid "+(depth===d.id?"#0F172A":"#E5E7EB"),background:depth===d.id?"#0F172A":"#fff",color:depth===d.id?"#fff":"#6B7280",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.1s"}}>{d.label}</button>)}
+          </div>
+        </div>
+      </div>
+
+      {/* Dynamic CTAs */}
+      <div style={{display:"flex",gap:8}}>
+        {activeCTAs.map((cta,i)=><button key={cta.id} onClick={()=>generate(cta.id)} disabled={running||!input.trim()} style={{flex:cta.primary?2:1,padding:cta.primary?"12px 16px":"10px 12px",borderRadius:10,border:"none",background:running||!input.trim()?"#E5E7EB":cta.primary?cta.color:"#F8F9FB",color:running||!input.trim()?"#9CA3AF":cta.primary?"#fff":"#374151",fontSize:cta.primary?13:11,fontWeight:600,cursor:running||!input.trim()?"not-allowed":"pointer",fontFamily:"Inter,system-ui,sans-serif",transition:"all 0.15s",border:cta.primary?"none":"0.5px solid #E5E7EB"}}>{running&&cta.primary?"Working...":cta.label+" →"}</button>)}
+      </div>
+    </div>
+
+    {/* ── STAGE TASK CARDS (when a DT chip is active) ── */}
+    {!isPromptMode&&stageData&&<div style={{marginBottom:16}}>
+      <div style={{fontSize:11,fontWeight:600,color:"#9CA3AF",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>{chip.charAt(0).toUpperCase()+chip.slice(1)} — pick a task to pre-fill</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:8}}>
+        {stageData.tasks.map(task=>{
+          const isActive=activeTask&&activeTask.id===task.id;
+          return <div key={task.id} onClick={()=>selectTask(task)} style={{background:isActive?stageData.bg:"#fff",border:"0.5px solid "+(isActive?stageData.color:"#E5E7EB"),borderLeft:"3px solid "+(isActive?stageData.color:"#E5E7EB"),borderRadius:"0 10px 10px 0",padding:"12px 14px",cursor:"pointer",transition:"all 0.12s"}}>
+            <div style={{fontSize:12,fontWeight:600,color:isActive?stageData.color:"#0F172A",marginBottom:4}}>{task.label}</div>
+            <div style={{fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>{task.desc}</div>
+          </div>;
+        })}
+      </div>
+    </div>}
+
+    {/* ── OUTPUT AREA ── */}
+    {(output||running)&&<div>
+      {cl&&<div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
+        <Tag text={INTENT_LABELS[cl.intent]||"Design"} color="#1E40AF" bg="#EFF6FF"/>
+        <Tag text={cl.pt.label+" prompt"} color={cl.pt.color} bg={cl.pt.bg}/>
+        <Tag text={TOOLS.find(t=>t.id===cl.tool)?.label||cl.tool} color="#374151" bg="#F3F4F6"/>
+        <span style={{fontSize:11,color:"#9CA3AF",marginLeft:"auto"}}>{cl.mode==="content"?"Content":"Spec"} · {depth}</span>
+      </div>}
+
+      {output&&<div style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
+        <div style={{display:"flex",gap:4}}>
+          {[["canvas","Canvas editor"],["raw","Raw output"]].map(([v,l])=><button key={v} onClick={()=>setViewMode(v)} style={{padding:"5px 12px",borderRadius:6,border:"0.5px solid "+(viewMode===v?"#0F172A":"#E5E7EB"),background:viewMode===v?"#0F172A":"#fff",color:viewMode===v?"#fff":"#6B7280",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>{l}</button>)}
+        </div>
+        <button onClick={async()=>{await navigator.clipboard.writeText(output);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{marginLeft:"auto",padding:"5px 12px",borderRadius:6,border:"0.5px solid #E5E7EB",background:"#F8F9FB",color:"#374151",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>{copied?"Copied!":"Copy output"}</button>
+      </div>}
+
+      <Card style={{minHeight:300}}>
+        {running&&<div style={{height:280,display:"flex",alignItems:"center",justifyContent:"center",color:"#6B7280"}}>
+          <div style={{textAlign:"center"}}>
+            <div style={{width:28,height:28,border:"2px solid #E5E7EB",borderTop:"2px solid #2563EB",borderRadius:"50%",margin:"0 auto 10px",animation:"spin 1s linear infinite"}}/>
+            <div style={{fontSize:12}}>Assembling governed context...</div>
+          </div>
+        </div>}
+        {output&&viewMode==="raw"&&<pre style={{fontSize:12,lineHeight:1.65,color:"#1E293B",whiteSpace:"pre-wrap",fontFamily:"JetBrains Mono,monospace",maxHeight:600,overflowY:"auto"}}>{output}</pre>}
+        {output&&viewMode==="canvas"&&canvasBlocks.length>0&&<div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,padding:"7px 10px",background:"#F8F9FB",borderRadius:7,border:"0.5px solid #E5E7EB"}}>
+            <span style={{fontSize:11,color:"#6B7280"}}>Double-click any block to edit inline.</span>
+            <div style={{display:"flex",gap:5}}>
+              <button onClick={()=>setCanvasBlocks(p=>[...p,{id:"c"+Date.now(),title:"Custom block",content:"Add your content here",color:"#374151"}])} style={{fontSize:10,padding:"4px 10px",borderRadius:5,border:"0.5px solid #E5E7EB",background:"#fff",cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",color:"#374151"}}>+ Add block</button>
+              <button onClick={async()=>{const code=canvasBlocks.map(b=>"## "+b.title+"\n"+b.content).join("\n\n");await navigator.clipboard.writeText(code);}} style={{fontSize:10,padding:"4px 10px",borderRadius:5,border:"0.5px solid #E5E7EB",background:"#fff",cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",color:"#374151"}}>Copy all</button>
+            </div>
+          </div>
+          <div style={{display:"grid",gap:8}}>
+            {canvasBlocks.map((block,i)=><div key={block.id} style={{border:"0.5px solid "+block.color+"25",borderLeft:"3px solid "+block.color,borderRadius:"0 8px 8px 0",padding:"12px 14px",background:"#fff"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                <span style={{fontSize:11,fontWeight:700,color:block.color,textTransform:"uppercase",letterSpacing:"0.06em"}}>{block.title}</span>
+                <div style={{display:"flex",gap:4}}>
+                  <button onClick={()=>moveBlock(i,-1)} disabled={i===0} style={{width:20,height:20,borderRadius:4,border:"0.5px solid #E5E7EB",background:"#F8F9FB",cursor:i===0?"not-allowed":"pointer",fontSize:10,color:"#6B7280",display:"flex",alignItems:"center",justifyContent:"center"}}>▲</button>
+                  <button onClick={()=>moveBlock(i,1)} disabled={i===canvasBlocks.length-1} style={{width:20,height:20,borderRadius:4,border:"0.5px solid #E5E7EB",background:"#F8F9FB",cursor:i===canvasBlocks.length-1?"not-allowed":"pointer",fontSize:10,color:"#6B7280",display:"flex",alignItems:"center",justifyContent:"center"}}>▼</button>
+                  <button onClick={()=>deleteBlock(block.id)} style={{width:20,height:20,borderRadius:4,border:"0.5px solid #FECACA",background:"#FEF2F2",cursor:"pointer",fontSize:10,color:"#DC2626",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+                </div>
+              </div>
+              {editingId===block.id
+                ?<textarea autoFocus value={block.content} onChange={e=>updateBlock(block.id,e.target.value)} onBlur={()=>setEditingId(null)} style={{width:"100%",fontSize:12,lineHeight:1.65,color:"#374151",border:"0.5px solid #2563EB",borderRadius:6,padding:"8px 10px",fontFamily:"Inter,system-ui,sans-serif",outline:"none",resize:"vertical",minHeight:60}}/>
+                :<div onDoubleClick={()=>setEditingId(block.id)} style={{fontSize:12,lineHeight:1.65,color:"#374151",cursor:"text",minHeight:30,whiteSpace:"pre-wrap"}}>{block.content||"(empty — double-click to edit)"}</div>
+              }
+            </div>)}
+          </div>
+        </div>}
+      </Card>
+    </div>}
+    <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+  </div>;
+}
+
+
+function GroundingTab(){
+  const [docs,setDocs]=useState(()=>{try{const d=localStorage.getItem("kp_resources");return d?JSON.parse(d):[{id:"demo1",title:"Design team interview — token inconsistency",content:"Designers frequently create hardcoded colors instead of using the token system. Mobile touch targets are too small in the settings panel. Users reported tap failures.",active:true}]}catch{return []}});
+  const [title,setTitle]=useState("");
+  const [content,setContent]=useState("");
+
+  function save(){
+    if(!title.trim()||!content.trim()) return;
+    const updated=[...docs,{id:"r"+Date.now(),title:title.trim(),content:content.trim(),active:true}];
+    setDocs(updated);
+    localStorage.setItem("kp_resources",JSON.stringify(updated));
+    setTitle("");setContent("");
+  }
+  function toggle(id){const u=docs.map(d=>d.id===id?{...d,active:!d.active}:d);setDocs(u);localStorage.setItem("kp_resources",JSON.stringify(u));}
+  function del(id){const u=docs.filter(d=>d.id!==id);setDocs(u);localStorage.setItem("kp_resources",JSON.stringify(u));}
+
+  return <div style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:16}}>
+    <Card>
+      <SectionTitle label="Add source document" desc="Paste user research, interview transcripts, or strategy notes. Active documents are injected into every generation as governed context."/>
+      <div style={{marginBottom:10}}>
+        <div style={{fontSize:11,fontWeight:600,color:"#6B7280",marginBottom:5}}>DOCUMENT TITLE</div>
+        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. User interview — June 2026" style={{width:"100%",padding:"8px 10px",border:"0.5px solid #E5E7EB",borderRadius:7,fontSize:12,fontFamily:"Inter,system-ui,sans-serif",outline:"none",color:"#111827"}}/>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:600,color:"#6B7280",marginBottom:5}}>CONTENT</div>
+        <textarea value={content} onChange={e=>setContent(e.target.value)} rows={6} placeholder="Paste transcript, findings, or strategy notes..." style={{width:"100%",padding:"8px 10px",border:"0.5px solid #E5E7EB",borderRadius:7,fontSize:12,fontFamily:"Inter,system-ui,sans-serif",resize:"vertical",outline:"none",lineHeight:1.6,color:"#111827"}}/>
+      </div>
+      <button onClick={save} style={{width:"100%",padding:"10px",borderRadius:8,border:"none",background:"#0F172A",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>Add to grounding context</button>
+    </Card>
+
+    <Card>
+      <SectionTitle label={`Grounding sources (${docs.length})`} desc="Checked sources are active and injected into every generation. Uncheck to pause a source without deleting it."/>
+      {docs.length===0&&<div style={{padding:"40px 0",textAlign:"center",color:"#9CA3AF",fontSize:13}}>No source documents added yet.</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {docs.map(d=><div key={d.id} style={{border:"0.5px solid #E5E7EB",borderRadius:8,padding:"12px 14px",opacity:d.active?1:0.5}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+            <input type="checkbox" checked={d.active} onChange={()=>toggle(d.id)} style={{width:14,height:14,cursor:"pointer",accentColor:"#2563EB"}}/>
+            <span style={{fontSize:12,fontWeight:600,color:d.active?"#0F172A":"#9CA3AF",flex:1}}>{d.title}</span>
+            <button onClick={()=>del(d.id)} style={{fontSize:10,padding:"2px 8px",border:"0.5px solid #FECACA",borderRadius:4,background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>Remove</button>
+          </div>
+          <div style={{fontSize:11,color:"#6B7280",lineHeight:1.55,paddingLeft:24}}>{d.content.slice(0,180)}{d.content.length>180?"...":""}</div>
+        </div>)}
+      </div>
+    </Card>
+  </div>;
+}
+
+
+function ComponentPreview({comp,rendered}){
+  const R=rendered;
+  if(!R) return null;
+  switch(R.type){
+    case "button": return <button style={R.style} disabled={R.disabled}>{R.showSpinner&&<span style={{width:12,height:12,border:"2px solid rgba(255,255,255,0.4)",borderTop:"2px solid #fff",borderRadius:"50%",display:"inline-block",animation:"spin 0.8s linear infinite"}}/>}{R.label}</button>;
+    case "link": return <a href="#" onClick={e=>e.preventDefault()} style={R.style}>{R.label}</a>;
+    case "toggle": return <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:R.width,height:R.height,borderRadius:R.height,background:R.on?R.bgOn:R.disabled?R.bgDisabled:R.bgOff,position:"relative",cursor:R.disabled?"not-allowed":"pointer",transition:"background 0.2s",opacity:R.disabled?0.6:1}}>
+        <div style={{position:"absolute",top:(R.height-R.thumbSize)/2,left:R.on?R.width-R.thumbSize-(R.height-R.thumbSize)/2:(R.height-R.thumbSize)/2,width:R.thumbSize,height:R.thumbSize,borderRadius:"50%",background:R.thumbColor,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+      </div>
+      <span style={{fontSize:13,color:"#374151"}}>{R.on?"On":"Off"}</span>
+    </div>;
+    case "checkbox": return <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:R.size,height:R.size,borderRadius:R.state==="error"?4:4,background:R.bgMap[R.state],border:"1.5px solid "+R.borderMap[R.state],display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+        {R.state==="checked"&&<span style={{color:"#fff",fontSize:R.size*0.6,lineHeight:1}}>✓</span>}
+        {R.state==="indeterminate"&&<span style={{color:"#fff",fontSize:R.size*0.7,lineHeight:1}}>−</span>}
+      </div>
+      <span style={{fontSize:13,color:R.state==="disabled"?"#9CA3AF":"#374151"}}>Accept terms and conditions</span>
+    </div>;
+    case "radio": return <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:R.size,height:R.size,borderRadius:"50%",border:"1.5px solid "+(R.error?"#DC2626":R.selected?"#2563EB":"#D1D5DB"),background:R.disabled?"#F9FAFB":"#fff",display:"flex",alignItems:"center",justifyContent:"center",opacity:R.disabled?0.5:1}}>
+        {R.selected&&<div style={{width:R.dotSize,height:R.dotSize,borderRadius:"50%",background:R.disabled?"#9CA3AF":"#2563EB"}}/>}
+      </div>
+      <span style={{fontSize:13,color:R.disabled?"#9CA3AF":"#374151"}}>Option label</span>
+    </div>;
+    case "input": return <div style={{width:"100%",maxWidth:280}}>
+      <input style={{...R.style}} placeholder={R.placeholder} defaultValue={R.value} disabled={R.disabled}/>
+      {R.errorMsg&&<div style={{fontSize:11,color:"#DC2626",marginTop:4,display:"flex",alignItems:"center",gap:4}}>⚠ {R.errorMsg}</div>}
+    </div>;
+    case "textarea": return <textarea style={R.style} placeholder={R.placeholder} disabled={R.disabled}/>;
+    case "select": return <div style={{width:"100%",maxWidth:280,position:"relative"}}>
+      <div style={{height:R.height,padding:"0 36px 0 12px",borderRadius:8,border:R.border,background:R.disabled?"#F9FAFB":"#fff",fontSize:14,fontFamily:"Inter,sans-serif",color:R.disabled?"#9CA3AF":R.value?"#111827":"#9CA3AF",display:"flex",alignItems:"center",cursor:R.disabled?"not-allowed":"pointer",opacity:R.disabled?0.6:1}}>
+        {R.value||"Select option"}
+        <span style={{position:"absolute",right:12,fontSize:10,color:"#6B7280"}}>{R.open?"▲":"▼"}</span>
+      </div>
+      {R.error&&<div style={{fontSize:11,color:"#DC2626",marginTop:4}}>⚠ Please select an option</div>}
+      {R.open&&<div style={{position:"absolute",top:R.height+4,left:0,right:0,background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:8,boxShadow:"0 4px 12px rgba(0,0,0,0.1)",zIndex:10}}>
+        {["Designer","Engineer","Manager","Strategist"].map(opt=><div key={opt} style={{padding:"8px 12px",fontSize:13,color:"#374151",cursor:"pointer"}} onMouseEnter={e=>e.target.style.background="#F3F4F6"} onMouseLeave={e=>e.target.style.background="transparent"}>{opt}</div>)}
+      </div>}
+    </div>;
+    case "badge": return <span style={R.style}>{R.state!=="neutral"&&<span style={{fontSize:10}}>{"success"===R.state?"✓":"warning"===R.state?"⚠":"error"===R.state?"✕":"ℹ"}</span>}{R.label}</span>;
+    case "alert": return <div style={{border:"0.5px solid "+R.borderColor,borderLeft:"3px solid "+R.col,borderRadius:8,padding:"12px 14px",background:R.bg,maxWidth:380}}>
+      <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+        <span style={{color:R.col,fontSize:16,flexShrink:0,marginTop:1}}>{R.icon}</span>
+        <div>
+          <div style={{fontSize:13,fontWeight:600,color:R.col,marginBottom:3}}>{R.title}</div>
+          <div style={{fontSize:12,color:"#6B7280",lineHeight:1.55}}>{R.msg}</div>
+        </div>
+      </div>
+    </div>;
+    case "toast": return <div style={{background:R.bg,borderRadius:8,padding:"10px 14px",display:"inline-flex",alignItems:"center",gap:10,minWidth:260,boxShadow:"0 4px 12px rgba(0,0,0,0.2)"}}>
+      <span style={{color:R.iconColor,fontSize:14}}>{R.icon}</span>
+      <span style={{fontSize:13,color:"#F8FAFC"}}>{R.msg}</span>
+      <button style={{marginLeft:"auto",background:"transparent",border:"none",color:"#94A3B8",cursor:"pointer",fontSize:14}}>✕</button>
+    </div>;
+    case "spinner": return <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
+      <div style={{width:R.size,height:R.size,border:"2px solid "+R.track,borderTop:"2px solid "+R.color,borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
+      <span style={{fontSize:12,color:"#6B7280"}}>Loading...</span>
+    </div>;
+    case "progress": return <div style={{width:"100%",maxWidth:320}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+        <span style={{fontSize:12,color:"#374151"}}>Uploading file</span>
+        <span style={{fontSize:12,color:"#374151"}}>{R.value!=null?R.value+"%":"..."}</span>
+      </div>
+      <div style={{height:R.height,background:R.track,borderRadius:999,overflow:"hidden"}}>
+        {R.indeterminate
+          ?<div style={{height:"100%",width:"40%",background:R.color,borderRadius:999,animation:"slide 1.5s ease-in-out infinite"}}/>
+          :<div style={{height:"100%",width:(R.value||0)+"%",background:R.color,borderRadius:999,transition:"width 0.3s"}}/>
+        }
+      </div>
+    </div>;
+    case "skeleton": return <div style={{width:"100%",maxWidth:320}}>
+      {R.variant==="text"&&<div>
+        <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,marginBottom:8,animation:"shimmer 1.5s infinite"}}/>
+        <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,width:"75%",marginBottom:8,animation:"shimmer 1.5s infinite"}}/>
+        <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,width:"50%",animation:"shimmer 1.5s infinite"}}/>
+      </div>}
+      {R.variant==="card"&&<div style={{border:"0.5px solid #E5E7EB",borderRadius:12,padding:16}}>
+        <div style={{height:120,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:8,marginBottom:12,animation:"shimmer 1.5s infinite"}}/>
+        <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,marginBottom:8,animation:"shimmer 1.5s infinite"}}/>
+        <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,width:"60%",animation:"shimmer 1.5s infinite"}}/>
+      </div>}
+      {R.variant==="avatar"&&<div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite",flexShrink:0}}/>
+        <div style={{flex:1}}>
+          <div style={{height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,marginBottom:6,animation:"shimmer 1.5s infinite"}}/>
+          <div style={{height:12,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,width:"60%",animation:"shimmer 1.5s infinite"}}/>
+        </div>
+      </div>}
+      {R.variant==="table-row"&&<div style={{display:"flex",gap:12}}>
+        {[1,0.7,0.5,0.6].map((w,i)=><div key={i} style={{flex:w,height:14,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",borderRadius:4,animation:"shimmer 1.5s infinite"}}/>)}
+      </div>}
+    </div>;
+    case "empty_state": return <div style={{textAlign:"center",padding:"32px 16px"}}>
+      <div style={{fontSize:40,marginBottom:12}}>{R.icon}</div>
+      <div style={{fontSize:15,fontWeight:600,color:"#0F172A",marginBottom:6}}>{R.title}</div>
+      <div style={{fontSize:13,color:"#6B7280",marginBottom:16,lineHeight:1.6}}>{R.body}</div>
+      {(R.state==="no-data"||R.state==="first-use")&&<button style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#2563EB",color:"#fff",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Get started</button>}
+      {R.state==="error"&&<button style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#F3F4F6",color:"#374151",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>Retry</button>}
+    </div>;
+    case "tabs": return <div style={{borderBottom:"1px solid #E5E7EB"}}>
+      <div style={{display:"flex",gap:2}}>
+        {R.tabs.map(tab=>{const active=tab===R.activeTab;const disabled=R.state==="disabled"&&tab==="Settings";return <div key={tab} style={{height:R.height,padding:"0 16px",display:"flex",alignItems:"center",gap:6,fontSize:13,fontWeight:active?600:400,color:active?"#2563EB":disabled?"#D1D5DB":"#6B7280",borderBottom:active?"2px solid #2563EB":"2px solid transparent",cursor:disabled?"not-allowed":"pointer",transition:"all 0.15s",marginBottom:-1}}>
+          {tab}
+          {R.badgeTab===tab&&<span style={{fontSize:10,fontWeight:700,padding:"1px 5px",borderRadius:999,background:"#DBEAFE",color:"#1E40AF"}}>{R.state==="with-badge"?"3":""}</span>}
+        </div>;})}
+      </div>
+    </div>;
+    case "breadcrumb": return <nav style={{display:"flex",alignItems:"center",gap:4}}>
+      {R.items.map((item,i)=><React.Fragment key={i}>
+        {i>0&&<span style={{color:"#D1D5DB",fontSize:12}}>/</span>}
+        {i<R.items.length-1?<span style={{fontSize:13,color:"#2563EB",cursor:"pointer"}}>{item}</span>:<span style={{fontSize:13,color:"#111827",fontWeight:500}}>{item}</span>}
+      </React.Fragment>)}
+    </nav>;
+    case "pagination": return R.compact
+      ?<div style={{display:"flex",alignItems:"center",gap:8}}>
+          <button style={{width:32,height:R.height,borderRadius:6,border:"0.5px solid #E5E7EB",background:R.currentPage===1?"#F9FAFB":"#fff",cursor:"pointer",fontSize:12,color:R.currentPage===1?"#D1D5DB":"#374151"}} disabled={R.currentPage===1}>←</button>
+          <span style={{fontSize:13,color:"#374151",minWidth:80,textAlign:"center"}}>{R.currentPage} of {R.totalPages}</span>
+          <button style={{width:32,height:R.height,borderRadius:6,border:"0.5px solid #E5E7EB",background:R.currentPage===R.totalPages?"#F9FAFB":"#fff",cursor:"pointer",fontSize:12,color:R.currentPage===R.totalPages?"#D1D5DB":"#374151"}} disabled={R.currentPage===R.totalPages}>→</button>
+        </div>
+      :<div style={{display:"flex",alignItems:"center",gap:4}}>
+          {[1,2,3,"...",R.totalPages].map((p,i)=><button key={i} style={{width:R.height,height:R.height,borderRadius:6,border:"0.5px solid "+(p===R.currentPage?"#2563EB":"#E5E7EB"),background:p===R.currentPage?"#2563EB":"#fff",color:p===R.currentPage?"#fff":p==="..."?"#9CA3AF":"#374151",fontSize:12,fontWeight:p===R.currentPage?600:400,cursor:p==="..."?"default":"pointer"}}>{p}</button>)}
+        </div>;
+    case "card": return <div style={{width:260,border:R.border,borderRadius:12,background:R.bg,boxShadow:R.shadow,overflow:"hidden",transition:"all 0.15s"}}>
+      {R.state==="loading"?<div style={{height:120,background:"linear-gradient(90deg,#F3F4F6 25%,#E5E7EB 50%,#F3F4F6 75%)",backgroundSize:"200% 100%",animation:"shimmer 1.5s infinite"}}/>:<div style={{height:120,background:"linear-gradient(135deg,#EFF6FF,#DBEAFE)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>◈</div>}
+      <div style={{padding:R.padding}}>
+        {R.state==="loading"?<><div style={{height:14,background:"#F3F4F6",borderRadius:4,marginBottom:8}}/><div style={{height:12,background:"#F3F4F6",borderRadius:4,width:"60%"}}/></>:<><div style={{fontSize:13,fontWeight:600,color:"#0F172A",marginBottom:4}}>Design System v7</div><div style={{fontSize:12,color:"#6B7280"}}>Updated 2 hours ago</div></>}
+      </div>
+    </div>;
+    case "modal": return <div style={{width:Math.min(R.width,340),border:"0.5px solid #E5E7EB",borderRadius:12,background:"#fff",boxShadow:"0 20px 48px rgba(0,0,0,0.15)",overflow:"hidden"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px 20px",borderBottom:"0.5px solid #F3F4F6"}}>
+        <span style={{fontSize:15,fontWeight:600,color:R.state==="danger"?"#991B1B":"#0F172A"}}>{R.title}</span>
+        <button style={{background:"transparent",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16}}>✕</button>
+      </div>
+      <div style={{padding:"16px 20px"}}>
+        {R.loading?<div style={{textAlign:"center",padding:"20px 0"}}><div style={{width:24,height:24,border:"2px solid #E5E7EB",borderTop:"2px solid #2563EB",borderRadius:"50%",margin:"0 auto 8px",animation:"spin 0.8s linear infinite"}}/><div style={{fontSize:12,color:"#6B7280"}}>Processing...</div></div>:<p style={{fontSize:13,color:"#6B7280",lineHeight:1.65,margin:"0 0 16px"}}>{R.body}</p>}
+        {!R.loading&&<div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button style={{padding:"7px 16px",borderRadius:7,border:"0.5px solid #E5E7EB",background:"#fff",fontSize:12,cursor:"pointer",fontFamily:"Inter,sans-serif",color:"#374151"}}>Cancel</button>
+          <button style={{padding:"7px 16px",borderRadius:7,border:"none",background:R.state==="danger"?"#DC2626":"#2563EB",color:"#fff",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"Inter,sans-serif"}}>{R.state==="danger"?"Delete":"Save changes"}</button>
+        </div>}
+      </div>
+    </div>;
+    case "accordion": return <div style={{border:"0.5px solid #E5E7EB",borderRadius:8,overflow:"hidden",maxWidth:340}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:"#fff",cursor:R.disabled?"not-allowed":"pointer",opacity:R.disabled?0.5:1}}>
+        <span style={{fontSize:13,fontWeight:500,color:"#0F172A"}}>{R.title}</span>
+        <span style={{fontSize:12,color:"#9CA3AF",transition:"transform 0.2s",transform:R.expanded?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
+      </div>
+      {R.expanded&&<div style={{padding:"0 16px 14px",fontSize:13,color:"#6B7280",lineHeight:1.65,borderTop:"0.5px solid #F3F4F6"}}>{R.content}</div>}
+    </div>;
+    case "avatar": return <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{position:"relative",display:"inline-block"}}>
+        <div style={{width:R.size,height:R.size,borderRadius:"50%",background:"#DBEAFE",display:"flex",alignItems:"center",justifyContent:"center",fontSize:R.fontSize,fontWeight:600,color:"#1E40AF"}}>
+          {R.state==="image"?"👤":R.state==="icon"?"◎":R.initials}
+        </div>
+        {R.badgeColor&&<div style={{position:"absolute",bottom:0,right:0,width:R.size*0.3,height:R.size*0.3,borderRadius:"50%",background:R.badgeColor,border:"2px solid #fff"}}/>}
+      </div>
+      <div><div style={{fontSize:13,fontWeight:500,color:"#0F172A"}}>Aadhithiyan</div><div style={{fontSize:11,color:"#6B7280"}}>Senior UX Strategist</div></div>
+    </div>;
+    case "metric_card": return <div style={{background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:10,padding:"16px 18px",minWidth:160}}>
+      <div style={{fontSize:11,color:"#9CA3AF",marginBottom:6}}>{R.label}</div>
+      <div style={{fontSize:26,fontWeight:700,color:"#0F172A",letterSpacing:"-0.03em",marginBottom:R.trend?4:0}}>{R.val}</div>
+      {R.trend&&<div style={{display:"flex",alignItems:"center",gap:4}}>
+        <span style={{fontSize:12,fontWeight:600,color:R.trendUp?"#15803D":"#DC2626"}}>{R.trendUp?"▲":"▼"} {R.trend}</span>
+        <span style={{fontSize:11,color:"#9CA3AF"}}>vs last period</span>
+      </div>}
+    </div>;
+    case "list_item": return <div style={{display:"flex",alignItems:"center",gap:12,height:R.height,padding:"0 12px",borderRadius:8,background:R.selected?"#EFF6FF":"transparent",opacity:R.disabled?0.5:1,cursor:R.disabled?"not-allowed":"pointer",border:R.selected?"0.5px solid #BFDBFE":"0.5px solid transparent",maxWidth:320}}>
+      <div style={{width:32,height:32,borderRadius:6,background:"#F3F4F6",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>◈</div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:13,fontWeight:500,color:R.disabled?"#9CA3AF":"#0F172A",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{R.label}</div>
+        <div style={{fontSize:11,color:"#9CA3AF"}}>{R.sublabel}</div>
+      </div>
+      {R.selected&&<span style={{color:"#2563EB",fontSize:14}}>✓</span>}
+    </div>;
+    case "table_row": return <table style={{width:"100%",borderCollapse:"collapse"}}>
+      <thead><tr style={{background:"#F8F9FB"}}>
+        {["Name","Role","Team","Status"].map(h=><th key={h} style={{padding:"8px 12px",fontSize:11,fontWeight:600,color:"#6B7280",textAlign:"left",borderBottom:"0.5px solid #E5E7EB"}}>{h}</th>)}
+      </tr></thead>
+      <tbody><tr style={{background:R.selected?"#EFF6FF":"#fff"}}>
+        {R.loading?R.cols.map((_,i)=><td key={i} style={{padding:"10px 12px"}}><div style={{height:12,background:"#F3F4F6",borderRadius:4}}/></td>):R.cols.map((c,i)=><td key={i} style={{padding:"10px 12px",fontSize:13,color:i===3?"#15803D":"#374151",fontWeight:i===0?500:400,borderBottom:"0.5px solid #F3F4F6"}}>{c}</td>)}
+      </tr></tbody>
+    </table>;
+    case "menu_item": return <div style={{background:"#fff",border:"0.5px solid #E5E7EB",borderRadius:8,padding:"4px",width:200}}>
+      {["Edit settings","Duplicate","Archive","---","Delete project"].map((item,i)=>item==="---"?<div key={i} style={{height:1,background:"#F3F4F6",margin:"4px 0"}}/>:<div key={i} style={{height:R.height,padding:"0 10px",display:"flex",alignItems:"center",fontSize:13,borderRadius:6,color:item==="Delete project"?R.state==="destructive"?"#DC2626":"#111827":R.state==="disabled"&&item==="Duplicate"?"#D1D5DB":"#111827",background:item==="Edit settings"&&R.state==="hover"?"#F3F4F6":item==="Edit settings"&&R.state==="active"?"#EFF6FF":"transparent",cursor:"pointer"}}>{item}</div>)}
+    </div>;
+    case "tooltip": return <div style={{position:"relative",display:"inline-flex",flexDirection:"column",alignItems:"center",gap:8}}>
+      <button style={{padding:"6px 14px",borderRadius:7,border:"0.5px solid #E5E7EB",background:"#fff",fontSize:13,cursor:"pointer",fontFamily:"Inter,sans-serif",color:"#374151"}}>Save</button>
+      <div style={{background:"#1E293B",color:"#F8FAFC",fontSize:11,padding:"5px 10px",borderRadius:4,whiteSpace:"nowrap",boxShadow:"0 4px 12px rgba(0,0,0,0.15)"}}>{R.label}</div>
+    </div>;
+    default: return <div style={{color:"#9CA3AF",fontSize:12}}>Preview not available</div>;
+  }
+}
+
+function SandboxTab(){
+  const [comp,setComp]=useState("button");
+  const [state,setState]=useState("default");
+  const [size,setSize]=useState("md");
+  const [theme,setTheme]=useState("light");
+  const def=SANDBOX_COMPONENTS[comp];
+
+  const rendered=def.render(state,size,theme);
+  const tokens=def.tokens(state,size);
+  const audit=def.audit(state,size);
+
+  const bgStyle=theme==="dark"?{background:"#1E293B",borderRadius:10,padding:24}:{background:"#F8F9FB",borderRadius:10,padding:24};
+
+  const isFigmaMode = false; // future: when figma URL loaded, override component list with figma components
+
+  return <div>
+    <div style={{marginBottom:12,padding:"9px 14px",background:"#FFFBEB",border:"0.5px solid #FDE68A",borderRadius:8,display:"flex",alignItems:"center",gap:8}}>
+      <span style={{fontSize:13}}>⚡</span>
+      <span style={{fontSize:12,color:"#92400E"}}><strong>28 SaaS components</strong> loaded. Paste a Figma URL in the Figma Docs tab to override this list with your team's actual components.</span>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:16}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        <Card style={{maxHeight:560,overflowY:"auto"}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>Components ({Object.keys(SANDBOX_COMPONENTS).length})</div>
+          {Array.from(new Set(Object.values(SANDBOX_COMPONENTS).map(c=>c.group))).map(group=>(
+            <div key={group} style={{marginBottom:10}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#94A3B8",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:5,paddingLeft:2}}>{group}</div>
+              {Object.entries(SANDBOX_COMPONENTS).filter(([,c])=>c.group===group).map(([k,c])=>(
+                <button key={k} onClick={()=>{setComp(k);setState(SANDBOX_COMPONENTS[k].states[0]);setSize(SANDBOX_COMPONENTS[k].sizes[0]);}} style={{width:"100%",padding:"7px 10px",borderRadius:6,border:"0.5px solid "+(comp===k?"#0F172A":"transparent"),background:comp===k?"#0F172A":"transparent",color:comp===k?"#fff":"#6B7280",fontSize:12,fontWeight:comp===k?600:400,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",marginBottom:2,textAlign:"left",transition:"all 0.1s"}}
+                  onMouseEnter={e=>{if(comp!==k)e.currentTarget.style.background="#F3F4F6";}}
+                  onMouseLeave={e=>{if(comp!==k)e.currentTarget.style.background="transparent";}}
+                >{c.label}</button>
+              ))}
+            </div>
+          ))}
+        </Card>
+        <Card>
+          <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:8}}>State</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {def.states.map(s=><button key={s} onClick={()=>setState(s)} style={{padding:"5px 10px",borderRadius:6,border:"0.5px solid "+(state===s?"#2563EB":"#E5E7EB"),background:state===s?"#2563EB":"#fff",color:state===s?"#fff":"#6B7280",fontSize:11,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",fontWeight:state===s?600:400}}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+          </div>
+        </Card>
+        <Card>
+          <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:8}}>Size</div>
+          <div style={{display:"flex",gap:5}}>
+            {def.sizes.map(s=><button key={s} onClick={()=>setSize(s)} style={{flex:1,padding:"6px",borderRadius:6,border:"0.5px solid "+(size===s?"#0F172A":"#E5E7EB"),background:size===s?"#0F172A":"#fff",color:size===s?"#fff":"#6B7280",fontSize:11,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",fontWeight:size===s?600:400}}>{s.toUpperCase()}</button>)}
+          </div>
+          <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:8,marginTop:12}}>Theme</div>
+          <div style={{display:"flex",gap:5}}>
+            {def.themes.map(t=><button key={t} onClick={()=>setTheme(t)} style={{flex:1,padding:"6px",borderRadius:6,border:"0.5px solid "+(theme===t?"#0F172A":"#E5E7EB"),background:theme===t?"#0F172A":"#fff",color:theme===t?"#fff":"#6B7280",fontSize:11,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",fontWeight:theme===t?600:400}}>{t.charAt(0).toUpperCase()+t.slice(1)}</button>)}
+          </div>
+        </Card>
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <Card>
+          <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:12}}>Live preview</div>
+          <div style={bgStyle}>
+            <ComponentPreview comp={comp} rendered={rendered}/>
+          </div>
+        </Card>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <Card>
+            <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>Tokens from L8</div>
+            {tokens.map((t,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:"0.5px solid #F3F4F6"}}>
+              <span style={{fontSize:11,color:"#6B7280",fontFamily:"JetBrains Mono,monospace"}}>{t.n}</span>
+              <span style={{fontSize:11,fontWeight:500,color:"#0F172A",display:"flex",alignItems:"center",gap:5}}>
+                {t.sw&&<span style={{width:10,height:10,borderRadius:2,background:t.sw,border:"0.5px solid #E5E7EB",flexShrink:0}}/>}
+                {t.v}
+              </span>
+            </div>)}
+          </Card>
+
+          <Card>
+            <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>Governance audit</div>
+            {audit.map((a,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 8px",borderRadius:6,background:"#F8F9FB",marginBottom:5}}>
+              <span style={{fontSize:11,color:"#6B7280"}}>{a.l}</span>
+              <span style={{fontSize:11,fontWeight:600,color:a.p===true?"#15803D":a.p===false?"#DC2626":"#9CA3AF"}}>{a.v}</span>
+            </div>)}
+          </Card>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function FigmaTab(){
+  const [url,setUrl]=useState("");
+  const [step,setStep]=useState("idle");
+  const [activeComp,setActiveComp]=useState(null);
+  const [activeDoc,setActiveDoc]=useState(null);
+
+  function simulate(){
+    if(!url.trim()&&step==="idle") return;
+    setStep("reading");
+    setTimeout(()=>setStep("mapping"),1200);
+    setTimeout(()=>setStep("done"),2400);
+  }
+
+  const docFor=(comp)=>{
+    return {
+      name:comp.name,
+      purpose:`The ${comp.name.split("/")[0]} component provides consistent ${comp.name.split("/")[1]?.toLowerCase()||"interaction"} patterns across all products. Use this component whenever the design requires ${comp.name.split("/")[1]?.toLowerCase()||"this pattern"}.`,
+      when:`Use ${comp.name} when: the user needs to perform a primary action, the context requires clear affordance, the interaction is task-critical.`,
+      whenNot:`Do not use ${comp.name} when: the action is secondary or destructive (use a secondary or ghost variant), the space is too constrained for the minimum touch target, an icon-only button would communicate more clearly.`,
+      anatomy:[
+        {part:"Container",desc:"The outermost bounding element. Sets height, border radius, and background colour via tokens."},
+        {part:"Label",desc:"The text string communicating the action. Never truncated. Set in body/label token."},
+        {part:"Leading icon",desc:"Optional. Reinforces the action when text alone is ambiguous. 16px, same colour as label."},
+        {part:"Loading indicator",desc:"Replaces label and icon during async operations. Never removes the container."}
+      ],
+      tokens:comp.tokens,
+      issues:comp.issues,
+      issueDetail:comp.issueDetail
+    };
+  };
+
+  return <div>
+    <Card style={{marginBottom:16}}>
+      <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#6B7280",marginBottom:6,letterSpacing:"0.05em",textTransform:"uppercase"}}>Figma file URL</div>
+          <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://www.figma.com/design/..." style={{width:"100%",padding:"9px 12px",border:"0.5px solid #E5E7EB",borderRadius:8,fontSize:13,fontFamily:"Inter,system-ui,sans-serif",outline:"none",color:"#111827"}}/>
+        </div>
+        <button onClick={simulate} style={{padding:"9px 20px",borderRadius:8,border:"none",background:"#0F172A",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",whiteSpace:"nowrap"}}>Read components</button>
+        <button onClick={()=>{setUrl("https://www.figma.com/design/demo-kalaipezhai");simulate();}} style={{padding:"9px 16px",borderRadius:8,border:"0.5px solid #E5E7EB",background:"#F8F9FB",color:"#374151",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",whiteSpace:"nowrap"}}>Demo file</button>
+      </div>
+      {step!=="idle"&&<div style={{marginTop:12,display:"flex",gap:16,alignItems:"center"}}>
+        {[["Reading component tree","reading"],["Mapping tokens to L8 registry","mapping"],["Generating documentation","done"]].map(([l,s],i)=>{
+          const idx=["reading","mapping","done"].indexOf(step);
+          const me=["reading","mapping","done"].indexOf(s);
+          const done=idx>=me; const active=idx===me;
+          return <div key={s} style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:16,height:16,borderRadius:"50%",background:done?"#15803D":active?"#2563EB":"#E5E7EB",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {done&&!active&&<span style={{color:"#fff",fontSize:9}}>✓</span>}
+              {active&&<div style={{width:6,height:6,borderRadius:"50%",background:"#fff",animation:"ping 1s infinite"}}/>}
+            </div>
+            <span style={{fontSize:11,color:done?"#15803D":active?"#2563EB":"#9CA3AF",fontWeight:done||active?600:400}}>{l}</span>
+            {i<2&&<span style={{color:"#E5E7EB",fontSize:12}}>→</span>}
+          </div>;
+        })}
+      </div>}
+    </Card>
+
+    {step==="done"&&<div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:16}}>
+      <div>
+        <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>Components found ({FIGMA_DEMO_COMPONENTS.length})</div>
+        {FIGMA_DEMO_COMPONENTS.map(c=><div key={c.name} onClick={()=>{setActiveComp(c);setActiveDoc(docFor(c));}} style={{padding:"10px 12px",borderRadius:8,border:"0.5px solid "+(activeComp?.name===c.name?"#2563EB":"#E5E7EB"),background:activeComp?.name===c.name?"#EFF6FF":"#fff",cursor:"pointer",marginBottom:6,position:"relative"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:2}}>{c.name}</div>
+          <div style={{fontSize:10,color:"#9CA3AF"}}>{c.variants} variants · {c.states.length} states</div>
+          {c.issues>0&&<div style={{position:"absolute",top:8,right:8,width:16,height:16,borderRadius:"50%",background:"#DC2626",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{c.issues}</div>}
+        </div>)}
+        <div style={{marginTop:12,padding:"10px 12px",background:"#FFFBEB",border:"0.5px solid #FDE68A",borderRadius:8}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#92400E",marginBottom:4}}>3 drift signals detected</div>
+          <div style={{fontSize:11,color:"#78350F",lineHeight:1.55}}>2 components with hardcoded values not in token registry. 1 touch target below 24px minimum.</div>
+        </div>
+      </div>
+
+      {activeDoc&&<Card>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:12,borderBottom:"0.5px solid #F3F4F6"}}>
+          <div>
+            <div style={{fontSize:17,fontWeight:700,color:"#0F172A",letterSpacing:"-0.02em"}}>{activeDoc.name}</div>
+            <div style={{fontSize:12,color:"#9CA3AF",marginTop:2,fontFamily:"JetBrains Mono,monospace"}}>Auto-generated from Figma · Kalai Pezhai</div>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            {activeComp.issues>0&&<Tag text={activeComp.issues+" issue"+(activeComp.issues>1?"s":"")} color="#991B1B" bg="#FEE2E2"/>}
+            <Tag text={activeComp.variants+" variants"} color="#1E40AF" bg="#EFF6FF"/>
+          </div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:8,paddingBottom:6,borderBottom:"0.5px solid #F3F4F6"}}>Purpose</div>
+            <div style={{fontSize:12,color:"#6B7280",lineHeight:1.65,marginBottom:14}}>{activeDoc.purpose}</div>
+
+            <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:6}}>When to use</div>
+            <div style={{fontSize:12,color:"#6B7280",lineHeight:1.65,marginBottom:10}}>{activeDoc.when}</div>
+            <div style={{fontSize:12,fontWeight:600,color:"#DC2626",marginBottom:6}}>When not to use</div>
+            <div style={{fontSize:12,color:"#6B7280",lineHeight:1.65}}>{activeDoc.whenNot}</div>
+          </div>
+
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:8,paddingBottom:6,borderBottom:"0.5px solid #F3F4F6"}}>Anatomy</div>
+            {activeDoc.anatomy.map((a,i)=><div key={i} style={{marginBottom:8}}>
+              <div style={{fontSize:11,fontWeight:600,color:"#374151"}}>{i+1}. {a.part}</div>
+              <div style={{fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>{a.desc}</div>
+            </div>)}
+          </div>
+        </div>
+
+        <div style={{marginTop:14,paddingTop:12,borderTop:"0.5px solid #F3F4F6"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:8}}>Design tokens</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {activeDoc.tokens.map(t=><code key={t} style={{fontSize:10,padding:"3px 8px",background:"#F3F4F6",borderRadius:4,color:"#374151",fontFamily:"JetBrains Mono,monospace"}}>{t}</code>)}
+          </div>
+        </div>
+
+        {activeDoc.issues>0&&<div style={{marginTop:12,padding:"10px 12px",background:"#FEF2F2",border:"0.5px solid #FECACA",borderRadius:8}}>
+          <div style={{fontSize:11,fontWeight:600,color:"#DC2626",marginBottom:4}}>Drift signals detected</div>
+          <div style={{fontSize:11,color:"#991B1B",lineHeight:1.55}}>{activeDoc.issueDetail}</div>
+        </div>}
+
+        <div style={{marginTop:14,paddingTop:12,borderTop:"0.5px solid #F3F4F6"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#0F172A",marginBottom:8}}>States</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {activeComp.states.map(s=><Tag key={s} text={s} color="#374151" bg="#F3F4F6"/>)}
+          </div>
+        </div>
+      </Card>}
+      {!activeDoc&&<Card style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:400}}>
+        <div style={{textAlign:"center",color:"#9CA3AF"}}>
+          <div style={{fontSize:28,marginBottom:8}}>◈</div>
+          <div style={{fontSize:13,fontWeight:500,color:"#374151"}}>Select a component</div>
+          <div style={{fontSize:12,marginTop:4}}>Click any component on the left to see its auto-generated documentation</div>
+        </div>
+      </Card>}
+    </div>}
+
+    {step==="idle"&&<Card style={{minHeight:320,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",maxWidth:400}}>
+        <div style={{fontSize:36,marginBottom:12}}>◈</div>
+        <div style={{fontSize:16,fontWeight:600,color:"#0F172A",marginBottom:8}}>Figma Documentation Generator</div>
+        <div style={{fontSize:13,color:"#6B7280",lineHeight:1.7,marginBottom:16}}>Paste a Figma file URL above and the brain reads every master component, maps its values to the L8 token registry, flags drift signals, and generates ZeroHeight-style documentation automatically.</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+          <Tag text="Reads component tree" color="#1E40AF" bg="#EFF6FF"/>
+          <Tag text="Maps to L8 tokens" color="#15803D" bg="#F0FDF4"/>
+          <Tag text="Flags drift signals" color="#991B1B" bg="#FEF2F2"/>
+          <Tag text="Generates ZeroHeight docs" color="#7C3AED" bg="#F5F3FF"/>
+        </div>
+        <div style={{marginTop:16,padding:"10px 14px",background:"#FFFBEB",border:"0.5px solid #FDE68A",borderRadius:8,fontSize:11,color:"#78350F",textAlign:"left"}}>
+          <strong>For the presentation:</strong> Click "Demo file" to see a simulated output. Live Figma connection requires the GitHub-hosted version with a small backend. One evening of engineering work.
+        </div>
+      </div>
+    </Card>}
+    <style>{`@keyframes ping{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+  </div>;
+}
+
+function VisionTab(){
+  const [image,setImage]=useState(null);
+  const [preview,setPreview]=useState(null);
+  const [tool,setTool]=useState("figma");
+  const [running,setRunning]=useState(false);
+  const [output,setOutput]=useState("");
+  const [copied,setCopied]=useState(false);
+  const fileRef=useRef();
+
+  function handleFile(e){
+    const f=e.target.files[0];
+    if(!f) return;
+    setImage(f);
+    setPreview(URL.createObjectURL(f));
+    setOutput("");
+  }
+
+  async function analyse(){
+    if(!image||running) return;
+    setRunning(true);
+    setOutput("");
+    try{
+      const reader=new FileReader();
+      reader.readAsDataURL(image);
+      reader.onload=async()=>{
+        const b64=reader.result.split(",")[1];
+        const resp=await fetch("https://api.anthropic.com/v1/messages",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            model:"claude-sonnet-4-20250514",
+            max_tokens:1000,
+            messages:[{role:"user",content:[
+              {type:"image",source:{type:"base64",media_type:image.type,data:b64}},
+              {type:"text",text:buildVisionPrompt(tool)}
+            ]}]
+          })
+        });
+        const data=await resp.json();
+        setOutput(data.content?.[0]?.text||"No output");
+        setRunning(false);
+      };
+    }catch(e){
+      setOutput("Error: "+e.message);
+      setRunning(false);
+    }
+  }
+
+  return <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <Card>
+        <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:10}}>Upload design image</div>
+        <div onClick={()=>fileRef.current.click()} style={{border:"1.5px dashed #E5E7EB",borderRadius:10,padding:"20px 16px",textAlign:"center",cursor:"pointer",background:"#F8F9FB",transition:"all 0.12s"}}>
+          {preview?<img src={preview} style={{maxHeight:160,borderRadius:6,maxWidth:"100%"}} alt="preview"/>:<div>
+            <div style={{fontSize:28,marginBottom:6,color:"#D1D5DB"}}>↑</div>
+            <div style={{fontSize:12,fontWeight:500,color:"#374151"}}>Drop or click to upload</div>
+            <div style={{fontSize:11,color:"#9CA3AF",marginTop:3}}>PNG, JPG, WebP</div>
+          </div>}
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{display:"none"}}/>
+        </div>
+      </Card>
+
+      <Card>
+        <div style={{fontSize:11,fontWeight:600,color:"#94A3B8",letterSpacing:"0.07em",textTransform:"uppercase",marginBottom:8}}>Reverse-prompt for</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+          {["figma","v0","midjourney","runway","chatgpt"].map(t=><button key={t} onClick={()=>setTool(t)} style={{padding:"5px 10px",borderRadius:6,border:"0.5px solid "+(tool===t?"#2563EB":"#E5E7EB"),background:tool===t?"#2563EB":"#fff",color:tool===t?"#fff":"#6B7280",fontSize:11,cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif",fontWeight:tool===t?600:400}}>{TOOLS.find(x=>x.id===t)?.label||t}</button>)}
+        </div>
+      </Card>
+
+      <button onClick={analyse} disabled={!image||running} style={{padding:"11px",borderRadius:9,border:"none",background:!image||running?"#E5E7EB":"#0F172A",color:!image||running?"#9CA3AF":"#fff",fontSize:12,fontWeight:600,cursor:!image||running?"not-allowed":"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>
+        {running?"Analysing image...":"Analyse and extract prompt →"}
+      </button>
+    </div>
+
+    <Card style={{minHeight:400}}>
+      {!output&&!running&&<div style={{height:380,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",color:"#9CA3AF"}}>
+        <div style={{fontSize:32,marginBottom:8}}>◎</div>
+        <div style={{fontSize:13,fontWeight:500,color:"#374151"}}>Upload a design image</div>
+        <div style={{fontSize:12,marginTop:4,maxWidth:300,textAlign:"center"}}>The vision model extracts visual style, maps values to L8 tokens, runs a governance audit, and produces a governed reverse prompt for your target tool.</div>
+      </div>}
+      {running&&<div style={{height:380,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{textAlign:"center",color:"#6B7280"}}>
+          <div style={{width:32,height:32,border:"2px solid #E5E7EB",borderTop:"2px solid #2563EB",borderRadius:"50%",margin:"0 auto 12px",animation:"spin 1s linear infinite"}}/>
+          <div style={{fontSize:12}}>Extracting visual design decisions...</div>
+        </div>
+      </div>}
+      {output&&<div>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
+          <button onClick={async()=>{await navigator.clipboard.writeText(output);setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{fontSize:11,padding:"4px 10px",border:"0.5px solid #E5E7EB",borderRadius:6,background:"#F8F9FB",color:"#374151",cursor:"pointer",fontFamily:"Inter,system-ui,sans-serif"}}>
+            {copied?"Copied!":"Copy output"}
+          </button>
+        </div>
+        <pre style={{fontSize:12,lineHeight:1.65,color:"#1E293B",whiteSpace:"pre-wrap",fontFamily:"JetBrains Mono,monospace",maxHeight:580,overflowY:"auto"}}>{output}</pre>
+      </div>}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </Card>
+  </div>;
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+
+function App(){
+  const [tab,setTab]=useState("generate");
+  const tabs=[
+    {id:"generate",label:"Home"},
+    {id:"grounding",label:"Grounding"},
+    {id:"sandbox",label:"Token Sandbox"},
+    {id:"figma",label:"Figma Docs"},
+    {id:"vision",label:"Vision Extractor"}
+  ];
+
+  return <div style={S.app}>
+    <header style={S.header}>
+      <div style={S.headerInner}>
+        <div style={S.logo}>
+          <div style={S.logoMark}>K</div>
+          <div>
+            <div style={S.logoText}>Kalai Pezhai</div>
+            <div style={S.logoSub}>Design Intelligence Platform</div>
+          </div>
+        </div>
+        <nav style={S.nav}>
+          {tabs.map(t=><NavBtn key={t.id} id={t.id} label={t.label} active={tab===t.id} onClick={()=>setTab(t.id)}/>)}
+        </nav>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E",animation:"pulse 2s infinite"}}/>
+          <span style={{fontSize:11,color:"#64748B",fontWeight:500}}>Live</span>
+        </div>
+      </div>
+    </header>
+
+    <main style={S.main}>
+      {tab==="generate"&&<GenerateTab/>}
+      {tab==="grounding"&&<GroundingTab/>}
+      {tab==="sandbox"&&<SandboxTab/>}
+      {tab==="figma"&&<FigmaTab/>}
+      {tab==="vision"&&<VisionTab/>}
+    </main>
+
+    <footer style={S.footer}>
+      <div style={S.footerInner}>
+        <div style={{display:"flex",gap:16,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#64748B"}}>Kalai Pezhai — Design Intelligence Platform</span>
+          <span style={{fontSize:10,color:"#475569",fontFamily:"JetBrains Mono,monospace"}}>633 design principles · 30 tools · 50 components governed</span>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#94A3B8"}}>Aadhithiyan</div>
+          <div style={{fontSize:10,color:"#64748B"}}>Senior UX Strategist</div>
+        </div>
+      </div>
+    </footer>
+    <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
